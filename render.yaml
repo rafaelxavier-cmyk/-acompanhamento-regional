@@ -3,14 +3,12 @@ services:
     name: acompanhamento-regional
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: TURSO_DATABASE_URL
-        sync: false
-      - key: TURSO_AUTH_TOKEN
+      - key: DATABASE_URL
         sync: false
       - key: GROQ_API_KEY
         sync: false
