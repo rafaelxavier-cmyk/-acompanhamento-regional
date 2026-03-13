@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+dist-server/
+release/
+out/
+*.db
+dev.db
+data/*.db
+.env
