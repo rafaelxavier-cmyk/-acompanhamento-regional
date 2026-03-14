@@ -1,7 +1,7 @@
 import type {
   Regional, Unidade, Macrocaixa, Visita, VisitaRecente,
   RegistroMacrocaixa, UltimoRegistro, UnidadeResumo,
-  Demanda, DemandaAberta
+  Demanda, DemandaAberta, DemandaKanban
 } from '../types'
 import type { AuthUser } from '../context/AuthContext'
 
@@ -82,9 +82,12 @@ export const api = {
   // Demandas
   getDemandasByRegistro: (registroId: number) => req<Demanda[]>('GET', '/demandas', undefined, { registroId: String(registroId) }),
   getDemandasAbertas: () => req<DemandaAberta[]>('GET', '/demandas/abertas'),
+  getDemandasKanban: () => req<DemandaKanban[]>('GET', '/demandas/kanban'),
   createDemanda: (registroId: number, data: { titulo: string; descricao?: string; prioridade?: string; responsavel?: string; prazo?: string }) =>
     req<Demanda>('POST', '/demandas', { registroId, ...data }),
-  updateDemanda: (id: number, data: { titulo?: string; descricao?: string; prioridade?: string; responsavel?: string; prazo?: string; statusDemanda?: string }) =>
+  createDemandaKanban: (data: { unidadeId: number; titulo: string; descricao?: string; prioridade?: string; responsavel?: string; prazo?: string }) =>
+    req<Demanda>('POST', '/demandas', data),
+  updateDemanda: (id: number, data: { titulo?: string; descricao?: string; prioridade?: string; responsavel?: string; prazo?: string; statusDemanda?: string; unidadeId?: number }) =>
     req<Demanda>('PATCH', `/demandas/${id}`, data),
   deleteDemanda: (id: number) => req<void>('DELETE', `/demandas/${id}`),
 

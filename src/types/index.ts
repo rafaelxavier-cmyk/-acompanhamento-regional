@@ -114,3 +114,19 @@ export interface DemandaAberta extends Demanda {
   macrocaixaCodigo: string
 }
 
+export interface DemandaKanban {
+  id: number
+  titulo: string
+  descricao: string | null
+  prioridade: PrioridadeDemanda
+  responsavel: string | null
+  prazo: string | null
+  statusDemanda: StatusDemanda
+  unidadeNome: string | null
+  unidadeId: number | null
+  regionalId: number | null
+  macrocaixaCodigo: string | null
+  registroId: number | null
+  createdAt: string
+}
+

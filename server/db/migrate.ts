@@ -23,6 +23,18 @@ export async function runMigrations(): Promise<void> {
   `)
   await run(`ALTER TABLE unidades ADD COLUMN IF NOT EXISTS iniciais TEXT`)
 
+  // Kanban: unidade_id direto + registro_id opcional
+  await run(`ALTER TABLE demandas ADD COLUMN IF NOT EXISTS unidade_id INTEGER REFERENCES unidades(id)`)
+  await run(`ALTER TABLE demandas ALTER COLUMN registro_id DROP NOT NULL`)
+  // Backfill unidade_id para demandas já existentes
+  await run(`
+    UPDATE demandas d SET unidade_id = (
+      SELECT v.unidade_id FROM registros_macrocaixa rm
+      JOIN visitas v ON v.id = rm.visita_id
+      WHERE rm.id = d.registro_id
+    ) WHERE d.unidade_id IS NULL AND d.registro_id IS NOT NULL
+  `)
+
   await run(`
     CREATE TABLE IF NOT EXISTS macrocaixas (
       id        SERIAL PRIMARY KEY,
