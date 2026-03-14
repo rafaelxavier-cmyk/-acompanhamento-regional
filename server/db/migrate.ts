@@ -117,7 +117,7 @@ async function runSeed(): Promise<void> {
   const macros: [string, string, string, number][] = [
     ['#02', 'Crescimento e Matrículas',         'Funil de vendas, campanhas de matrícula, recuperação de alunos',             1],
     ['#04', 'Experiência da Família e Atend.',   'Qualidade do atendimento, secretaria, jornada da família e NPS',            2],
-    ['#05', 'Infraestrutura e Expansão',         'Obras, salas, capacidade física',                                           3],
+    ['#05', 'Operação das Unidades',              'Rotinas operacionais, processos e gestão do dia a dia das unidades',        3],
     ['#06', 'Execução Comercial nas Unidades',   'Conversão presencial e atendimento comercial nas unidades',                 4],
     ['#07', 'Gestão Pedagógica Operacional',     'Problemas operacionais ligados ao pedagógico',                              5],
     ['#08', 'Infraestrutura e Expansão (Obras)', 'Obras, salas, capacidade física — projetos em andamento',                   6],
