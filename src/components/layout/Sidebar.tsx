@@ -34,12 +34,12 @@ export default function Sidebar() {
     <>
       {/* Logo */}
       <div className="px-3 py-3 border-b border-brand-700">
-        <div className="bg-white rounded-lg overflow-hidden mb-2" style={{ height: 68 }}>
+        <div className="bg-white rounded-lg mb-2 flex items-center justify-center" style={{ height: 64 }}>
           <img
             src={logoUrl}
             alt="Matriz Educação"
-            className="w-full h-full object-contain"
-            style={{ transform: 'scale(1.55)', transformOrigin: 'center' }}
+            className="w-full object-contain"
+            style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}
           />
         </div>
         <p className="text-brand-200 font-semibold text-xs leading-tight tracking-wide text-center">Acompanhamento Regional</p>
