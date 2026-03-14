@@ -1,9 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, MapPin, History, Settings, AlertCircle, ChevronDown, Layers, Menu, X, Users, LogOut, Shield, User } from 'lucide-react'
+import { LayoutDashboard, MapPin, History, Settings, AlertCircle, ChevronDown, Layers, Menu, X, Users, LogOut, Shield, User, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useRegional } from '../../context/RegionalContext'
 import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../lib/utils'
+import RelatorioIAModal from '../RelatorioIAModal'
 
 export default function Sidebar() {
   const { regionais, todasRegionais, regionalAtiva, setRegionalAtiva } = useRegional()
@@ -11,6 +12,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [relatorioOpen, setRelatorioOpen] = useState(false)
 
   const navItems = [
     { to: '/',              icon: LayoutDashboard, label: 'Dashboard'     },
@@ -78,6 +80,17 @@ export default function Sidebar() {
           </div>
         </div>
       )}
+
+      {/* Botão IA */}
+      <div className="px-3 py-3 border-b border-brand-700">
+        <button
+          onClick={() => { setRelatorioOpen(true); setMobileOpen(false) }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-white text-sm font-medium transition-colors"
+        >
+          <Sparkles size={15} className="flex-shrink-0" />
+          <span>Relatório por IA</span>
+        </button>
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -147,6 +160,9 @@ export default function Sidebar() {
       <aside className="hidden md:flex w-56 bg-brand-900 flex-col h-full flex-shrink-0">
         {sidebarContent}
       </aside>
+
+      {/* Modal Relatório IA */}
+      {relatorioOpen && <RelatorioIAModal onClose={() => setRelatorioOpen(false)} />}
     </>
   )
 }
