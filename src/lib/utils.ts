@@ -23,8 +23,8 @@ export function diasSemVisita(dataVisita: string | null): number | null {
 
 export function semaforoVisita(dias: number | null): 'verde' | 'amarelo' | 'vermelho' | 'cinza' {
   if (dias === null) return 'cinza'
-  if (dias <= 30) return 'verde'
-  if (dias <= 60) return 'amarelo'
+  if (dias <= 15) return 'verde'
+  if (dias <= 45) return 'amarelo'
   return 'vermelho'
 }
 
