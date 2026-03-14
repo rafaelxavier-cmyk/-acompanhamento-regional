@@ -34,10 +34,10 @@ export default function Sidebar() {
     <>
       {/* Logo */}
       <div className="px-4 py-3 border-b border-brand-700">
-        <div className="bg-white rounded-lg px-3 py-2 mb-2">
-          <img src={logoUrl} alt="Matriz Educação" className="h-8 w-auto object-contain" />
+        <div className="bg-white rounded-lg px-4 py-3 mb-2 flex items-center justify-center">
+          <img src={logoUrl} alt="Matriz Educação" className="h-11 w-full object-contain" />
         </div>
-        <h1 className="text-brand-200 font-semibold text-xs leading-tight tracking-wide">Acompanhamento Regional</h1>
+        <h1 className="text-brand-200 font-semibold text-xs leading-tight tracking-wide text-center">Acompanhamento Regional</h1>
       </div>
 
       {/* Regional selector */}
