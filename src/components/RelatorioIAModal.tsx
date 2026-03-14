@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import logoUrl from '../assets/logo.jpg'
 import { Sparkles, X, RefreshCw, Copy, Check, ChevronDown, AlertCircle, Pencil, Eye, FileDown } from 'lucide-react'
 import { api } from '../lib/api'
 import { useRegional } from '../context/RegionalContext'
@@ -116,7 +117,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
   function exportarPDF() {
     if (!resultado) return
     const data = formatDate(resultado.dataUltimaVisita)
-    const logoUrl = `${window.location.origin}/logo.jpg`
+    const logoPdfUrl = `${window.location.origin}${logoUrl}`
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -152,7 +153,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
 <body>
   <header>
     <div class="header-top">
-      <img src="${logoUrl}" alt="Matriz Educação" />
+      <img src="${logoPdfUrl}" alt="Matriz Educação" />
       <span class="data-gerado">Gerado em ${new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' })}</span>
     </div>
     <h1>Relatório de Visita — ${resultado.unidadeNome}</h1>
