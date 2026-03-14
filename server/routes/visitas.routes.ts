@@ -51,7 +51,21 @@ router.patch('/:id', async (req, res) => {
     await run('UPDATE visitas SET observacao_geral = ?, updated_at = ? WHERE id = ?', [data.observacaoGeral, now, id])
   if (data.diretorNome !== undefined)
     await run('UPDATE visitas SET diretor_nome = ?, updated_at = ? WHERE id = ?', [data.diretorNome, now, id])
+  if (data.dataVisita !== undefined)
+    await run('UPDATE visitas SET data_visita = ?, updated_at = ? WHERE id = ?', [data.dataVisita, now, id])
+  if (data.unidadeId !== undefined)
+    await run('UPDATE visitas SET unidade_id = ?, updated_at = ? WHERE id = ?', [data.unidadeId, now, id])
   res.json(await queryOne('SELECT * FROM visitas WHERE id = ?', [id]))
+})
+
+router.delete('/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  const visita = await queryOne('SELECT id FROM visitas WHERE id = ?', [id])
+  if (!visita) return res.status(404).json({ error: 'Not found' })
+  await run('DELETE FROM demandas WHERE registro_id IN (SELECT id FROM registros_macrocaixa WHERE visita_id = ?)', [id])
+  await run('DELETE FROM registros_macrocaixa WHERE visita_id = ?', [id])
+  await run('DELETE FROM visitas WHERE id = ?', [id])
+  res.status(204).end()
 })
 
 export default router

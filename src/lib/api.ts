@@ -44,7 +44,8 @@ export const api = {
   getVisitasByUnidade: (unidadeId: number) => req<Visita[]>('GET', '/visitas', undefined, { unidadeId: String(unidadeId) }),
   getVisita: (id: number) => req<Visita>('GET', `/visitas/${id}`),
   createVisita: (unidadeId: number, dataVisita: string, diretorNome?: string) => req<Visita>('POST', '/visitas', { unidadeId, dataVisita, diretorNome }),
-  updateVisita: (id: number, data: { status?: string; observacaoGeral?: string; diretorNome?: string }) => req<Visita>('PATCH', `/visitas/${id}`, data),
+  updateVisita: (id: number, data: { status?: string; observacaoGeral?: string; diretorNome?: string; dataVisita?: string; unidadeId?: number }) => req<Visita>('PATCH', `/visitas/${id}`, data),
+  deleteVisita: (id: number) => req<void>('DELETE', `/visitas/${id}`),
   getVisitasRecentes: (limite?: number) => req<VisitaRecente[]>('GET', '/visitas/recentes', undefined, { limite: limite?.toString() }),
 
   // Registros
