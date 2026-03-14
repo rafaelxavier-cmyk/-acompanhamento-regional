@@ -21,7 +21,7 @@ type View = 'lista' | 'kanban'
 export default function DemandasPage() {
   const navigate = useNavigate()
   const { regionalAtiva } = useRegional()
-  const [view, setView]   = useState<View>('lista')
+  const [view, setView]   = useState<View>('kanban')
   const [demandas, setDemandas] = useState<DemandaAberta[]>([])
   const [filtroUnidade, setFiltroUnidade]       = useState('')
   const [filtroPrioridade, setFiltroPrioridade] = useState('')
