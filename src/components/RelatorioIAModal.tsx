@@ -116,6 +116,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
   function exportarPDF() {
     if (!resultado) return
     const data = formatDate(resultado.dataUltimaVisita)
+    const logoUrl = `${window.location.origin}/logo.svg`
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -124,21 +125,24 @@ export default function RelatorioIAModal({ onClose }: Props) {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #1a202c; padding: 40px 48px; line-height: 1.6; }
-    header { border-bottom: 2px solid #2b6cb0; padding-bottom: 16px; margin-bottom: 24px; }
-    header h1 { font-size: 20px; color: #1a365d; margin-bottom: 4px; }
+    header { border-bottom: 2px solid #237f53; padding-bottom: 16px; margin-bottom: 24px; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .header-top img { height: 36px; }
+    .header-top .data-gerado { font-size: 11px; color: #718096; }
+    header h1 { font-size: 20px; color: #16432e; margin-bottom: 4px; }
     header .meta { color: #718096; font-size: 12px; display: flex; gap: 16px; margin-top: 8px; }
     header .meta span { background: #edf2f7; padding: 2px 10px; border-radius: 20px; }
     header .meta span.demandas { background: #fff3e0; color: #c05621; }
-    h1 { font-size: 18px; color: #1a365d; margin: 20px 0 8px; }
-    h2 { font-size: 15px; color: #2b6cb0; margin: 18px 0 6px; border-left: 3px solid #2b6cb0; padding-left: 8px; }
+    h1 { font-size: 18px; color: #16432e; margin: 20px 0 8px; }
+    h2 { font-size: 15px; color: #237f53; margin: 18px 0 6px; border-left: 3px solid #237f53; padding-left: 8px; }
     h3 { font-size: 13px; color: #2d3748; margin: 14px 0 4px; font-weight: 600; }
     p { margin: 4px 0; }
     ul { margin: 4px 0 8px 0; padding-left: 0; list-style: none; }
     li { padding: 2px 0 2px 16px; position: relative; }
-    li::before { content: "•"; position: absolute; left: 4px; color: #4299e1; }
+    li::before { content: "•"; position: absolute; left: 4px; color: #237f53; }
     strong { font-weight: 600; }
     br { display: block; margin: 4px 0; }
-    footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #e2e8f0; color: #a0aec0; font-size: 11px; text-align: right; }
+    footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #e2e8f0; color: #a0aec0; font-size: 11px; display: flex; justify-content: space-between; }
     @media print {
       body { padding: 20px 24px; }
       @page { margin: 1cm; }
@@ -147,7 +151,10 @@ export default function RelatorioIAModal({ onClose }: Props) {
 </head>
 <body>
   <header>
-    <div style="font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Matriz Educação — Acompanhamento Regional</div>
+    <div class="header-top">
+      <img src="${logoUrl}" alt="Matriz Educação" />
+      <span class="data-gerado">Gerado em ${new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' })}</span>
+    </div>
     <h1>Relatório de Visita — ${resultado.unidadeNome}</h1>
     <div class="meta">
       <span>Última visita: ${data}</span>
@@ -155,7 +162,10 @@ export default function RelatorioIAModal({ onClose }: Props) {
     </div>
   </header>
   ${markdownParaHtml(textoEditado)}
-  <footer>Gerado em ${new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' })}</footer>
+  <footer>
+    <span>Matriz Educação — Acompanhamento Regional</span>
+    <span>${resultado.unidadeNome}</span>
+  </footer>
 </body>
 </html>`
 

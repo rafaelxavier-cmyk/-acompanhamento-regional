@@ -98,8 +98,8 @@ export default function UsuariosPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Users size={24} className="text-gray-500" /> Usuários
@@ -121,55 +121,97 @@ export default function UsuariosPage() {
             <p>Nenhum usuário cadastrado</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Login</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Perfil</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Regionais</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+          <>
+            {/* Mobile: cards */}
+            <div className="md:hidden divide-y divide-gray-100">
               {usuarios.map(u => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium text-gray-800">{u.nome}</td>
-                  <td className="px-5 py-3 text-gray-500 font-mono text-xs">{u.login}</td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${u.perfil === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {u.perfil === 'admin' ? <Shield size={10} /> : <User size={10} />}
-                      {u.perfil === 'admin' ? 'Admin' : 'Usuário'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-gray-500 text-xs">
-                    {u.regionalIds.length === 0
-                      ? <span className="text-blue-600">Todas</span>
-                      : u.regionalIds.map(id => regionais.find(r => r.id === id)?.nome).filter(Boolean).join(', ')}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {u.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                    {u.trocarSenha === 1 && (
-                      <span className="ml-1 text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600 font-medium">Senha prov.</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => abrirEditar(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Editar">
+                <div key={u.id} className="px-4 py-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm truncate">{u.nome}</p>
+                      <p className="text-gray-400 font-mono text-xs mt-0.5">{u.login}</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => abrirEditar(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => setExcluindo(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir">
+                      <button onClick={() => setExcluindo(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>
-                  </td>
-                </tr>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${u.perfil === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                      {u.perfil === 'admin' ? <Shield size={9} /> : <User size={9} />}
+                      {u.perfil === 'admin' ? 'Admin' : 'Usuário'}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {u.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                    {u.trocarSenha === 1 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 font-medium">Senha prov.</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Regionais: {u.regionalIds.length === 0
+                      ? <span className="text-blue-600">Todas</span>
+                      : u.regionalIds.map(id => regionais.find(r => r.id === id)?.nome).filter(Boolean).join(', ')}
+                  </p>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Desktop: table */}
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-left">
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Login</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Perfil</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Regionais</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {usuarios.map(u => (
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-5 py-3 font-medium text-gray-800">{u.nome}</td>
+                    <td className="px-5 py-3 text-gray-500 font-mono text-xs">{u.login}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${u.perfil === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {u.perfil === 'admin' ? <Shield size={10} /> : <User size={10} />}
+                        {u.perfil === 'admin' ? 'Admin' : 'Usuário'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-gray-500 text-xs">
+                      {u.regionalIds.length === 0
+                        ? <span className="text-blue-600">Todas</span>
+                        : u.regionalIds.map(id => regionais.find(r => r.id === id)?.nome).filter(Boolean).join(', ')}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                      {u.trocarSenha === 1 && (
+                        <span className="ml-1 text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600 font-medium">Senha prov.</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button onClick={() => abrirEditar(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Editar">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => setExcluindo(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 

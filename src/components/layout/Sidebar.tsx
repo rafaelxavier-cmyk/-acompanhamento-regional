@@ -32,9 +32,9 @@ export default function Sidebar() {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-brand-700">
-        <p className="text-brand-300 text-xs font-medium uppercase tracking-widest">Matriz Educação</p>
-        <h1 className="text-white font-bold text-base leading-tight mt-0.5">Acompanhamento<br/>Regional</h1>
+      <div className="px-5 py-4 border-b border-brand-700">
+        <img src="/logo.svg" alt="Matriz Educação" className="h-10 brightness-0 invert mb-2" />
+        <h1 className="text-white font-bold text-sm leading-tight text-brand-200">Acompanhamento Regional</h1>
       </div>
 
       {/* Regional selector */}
@@ -147,7 +147,7 @@ export default function Sidebar() {
         <button onClick={() => setMobileOpen(true)} className="text-white mr-3">
           <Menu size={20} />
         </button>
-        <span className="text-white font-semibold text-sm">Acompanhamento Regional</span>
+        <img src="/logo.svg" alt="Matriz Educação" className="h-7 brightness-0 invert" />
       </div>
 
       {/* Mobile overlay */}
