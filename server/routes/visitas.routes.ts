@@ -3,6 +3,23 @@ import { query, queryOne, run, insert } from '../db/connection'
 
 const router = Router()
 
+router.get('/calendario', async (req, res) => {
+  const ini = (req.query.ini as string) || new Date().toISOString().slice(0, 7) + '-01'
+  const fim = (req.query.fim as string) || new Date().toISOString().slice(0, 10)
+  res.json(await query(`
+    SELECT
+      v.data_visita, v.status,
+      u.id   AS unidade_id,
+      u.nome AS unidade_nome,
+      COALESCE(u.iniciais, UPPER(LEFT(u.nome, 2))) AS iniciais,
+      u.regional_id
+    FROM visitas v
+    JOIN unidades u ON u.id = v.unidade_id
+    WHERE v.data_visita BETWEEN ? AND ?
+    ORDER BY v.data_visita, u.nome
+  `, [ini, fim]))
+})
+
 // IMPORTANT: /recentes must be before /:id
 router.get('/recentes', async (req, res) => {
   const limite = req.query.limite ? Number(req.query.limite) : 10

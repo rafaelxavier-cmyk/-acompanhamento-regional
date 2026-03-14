@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertCircle, CheckCircle2, ClipboardList, MapPin, TrendingUp, Calendar, RotateCcw } from 'lucide-react'
+import CalendarioVisitas from '../components/CalendarioVisitas'
 import type { Regional, UnidadeResumo, DemandaAberta } from '../types'
 import { formatDate, diasSemVisita, semaforoVisita } from '../lib/utils'
 import { cn } from '../lib/utils'
@@ -137,6 +138,11 @@ export default function Dashboard() {
           </div>
           <p className="text-3xl font-bold text-gray-900">{semVisita}</p>
         </div>
+      </div>
+
+      {/* Calendário de visitas */}
+      <div className="mb-8">
+        <CalendarioVisitas />
       </div>
 
       {/* Tabela por unidade */}

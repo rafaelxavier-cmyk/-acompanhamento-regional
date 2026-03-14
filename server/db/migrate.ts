@@ -17,9 +17,11 @@ export async function runMigrations(): Promise<void> {
       nome        TEXT    NOT NULL,
       regional_id INTEGER NOT NULL REFERENCES regionais(id),
       ativa       INTEGER NOT NULL DEFAULT 1,
+      iniciais    TEXT,
       created_at  TEXT    NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS'))
     )
   `)
+  await run(`ALTER TABLE unidades ADD COLUMN IF NOT EXISTS iniciais TEXT`)
 
   await run(`
     CREATE TABLE IF NOT EXISTS macrocaixas (
@@ -109,10 +111,10 @@ async function runSeed(): Promise<void> {
   const r1 = await insert("INSERT INTO regionais (nome) VALUES ('Regional 1')")
   const r2 = await insert("INSERT INTO regionais (nome) VALUES ('Regional 2')")
 
-  for (const nome of ['Bangu', 'Campo Grande', 'Retiro', 'São João de Meriti', 'Tijuca'])
-    await run('INSERT INTO unidades (nome, regional_id) VALUES (?, ?)', [nome, r1])
-  for (const nome of ['Caxias', 'Madureira', 'Nova Iguaçu', 'Rocha Miranda', 'Taquara'])
-    await run('INSERT INTO unidades (nome, regional_id) VALUES (?, ?)', [nome, r2])
+  for (const [nome, ini] of [['Bangu','BG'],['Campo Grande','CG'],['Retiro','RT'],['São João de Meriti','SJ'],['Tijuca','TJ']])
+    await run('INSERT INTO unidades (nome, regional_id, iniciais) VALUES (?, ?, ?)', [nome, r1, ini])
+  for (const [nome, ini] of [['Caxias','CX'],['Madureira','MD'],['Nova Iguaçu','NI'],['Rocha Miranda','RM'],['Taquara','TQ']])
+    await run('INSERT INTO unidades (nome, regional_id, iniciais) VALUES (?, ?, ?)', [nome, r2, ini])
 
   const macros: [string, string, string, number][] = [
     ['#02', 'Crescimento e Matrículas',         'Funil de vendas, campanhas de matrícula, recuperação de alunos',             1],

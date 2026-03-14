@@ -12,7 +12,17 @@ export interface Unidade {
   nome: string
   regionalId: number
   ativa: boolean
+  iniciais: string
   createdAt: string
+}
+
+export interface VisitaCalendario {
+  dataVisita: string
+  unidadeId: number
+  unidadeNome: string
+  iniciais: string
+  regionalId: number
+  status: string
 }
 
 export interface Macrocaixa {

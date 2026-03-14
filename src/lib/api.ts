@@ -70,6 +70,7 @@ export const api = {
   updateVisita: (id: number, data: { status?: string; observacaoGeral?: string; diretorNome?: string; dataVisita?: string; unidadeId?: number }) => req<Visita>('PATCH', `/visitas/${id}`, data),
   deleteVisita: (id: number) => req<void>('DELETE', `/visitas/${id}`),
   getVisitasRecentes: (limite?: number) => req<VisitaRecente[]>('GET', '/visitas/recentes', undefined, { limite: limite?.toString() }),
+  getVisitasCalendario: (ini: string, fim: string) => req<import('../types').VisitaCalendario[]>('GET', '/visitas/calendario', undefined, { ini, fim }),
 
   // Registros
   getRegistrosByVisita: (visitaId: number) => req<RegistroMacrocaixa[]>('GET', '/registros', undefined, { visitaId: String(visitaId) }),
