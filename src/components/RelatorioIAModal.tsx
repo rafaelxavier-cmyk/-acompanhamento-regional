@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import logoUrl from '../assets/logo.jpg'
+import logoUrl from '../assets/logo.png'
 import { Sparkles, X, RefreshCw, Copy, Check, ChevronDown, AlertCircle, Pencil, Eye, FileDown } from 'lucide-react'
 import { api } from '../lib/api'
 import { useRegional } from '../context/RegionalContext'

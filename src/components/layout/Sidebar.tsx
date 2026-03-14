@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import logoUrl from '../../assets/logo.jpg'
+import logoUrl from '../../assets/logo.png'
 import { LayoutDashboard, MapPin, History, Settings, AlertCircle, ChevronDown, Layers, Menu, X, Users, LogOut, Shield, User, Sparkles, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import { useRegional } from '../../context/RegionalContext'
@@ -33,11 +33,11 @@ export default function Sidebar() {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="px-3 pt-3 pb-2 border-b border-brand-700">
-        <div className="bg-white rounded-lg overflow-hidden" style={{ height: 58 }}>
-          <img src={logoUrl} alt="Matriz Educação" className="w-full h-full object-contain" />
-        </div>
-        <p className="text-brand-200 font-bold text-sm leading-tight tracking-wide text-center mt-2">Acompanhamento Regional</p>
+      <div className="px-4 pt-5 pb-4 border-b border-brand-700">
+        <img src={logoUrl} alt="Matriz Educação" className="w-full object-contain" style={{ maxHeight: 52 }} />
+        <p className="text-white/70 font-medium text-xs tracking-widest uppercase text-center mt-3">
+          Acompanhamento Regional
+        </p>
       </div>
 
       {/* Regional selector */}
@@ -150,7 +150,7 @@ export default function Sidebar() {
         <button onClick={() => setMobileOpen(true)} className="text-white mr-3">
           <Menu size={20} />
         </button>
-        <img src={logoUrl} alt="Matriz Educação" className="h-7 w-auto object-contain bg-white rounded px-1.5 py-0.5" />
+        <img src={logoUrl} alt="Matriz Educação" className="h-7 w-auto object-contain" />
       </div>
 
       {/* Mobile overlay */}
