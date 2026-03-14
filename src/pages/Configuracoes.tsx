@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Settings, Plus, ArrowLeftRight, Pencil, Check, X, Sparkles, Eye, EyeOff } from 'lucide-react'
 import type { Regional, Unidade } from '../types'
 import { api } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 
 interface EditState {
   type: 'regional' | 'unidade'
@@ -11,6 +12,8 @@ interface EditState {
 }
 
 export default function ConfiguracoesPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.perfil === 'admin'
   const [regionais, setRegionais] = useState<Regional[]>([])
   const [unidades, setUnidades] = useState<Unidade[]>([])
   const [edit, setEdit] = useState<EditState | null>(null)
@@ -81,8 +84,8 @@ export default function ConfiguracoesPage() {
         <p className="text-gray-500 text-sm mt-1">Gerencie regionais, unidades e integrações</p>
       </div>
 
-      {/* Integração IA — Groq */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+      {/* Integração IA — Groq (somente admin) */}
+      {isAdmin && <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
         <div className="bg-gradient-to-r from-brand-800 to-brand-600 px-5 py-4 flex items-center gap-3">
           <Sparkles size={18} className="text-brand-200" />
           <div>
@@ -122,7 +125,7 @@ export default function ConfiguracoesPage() {
             </button>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Regionais e Unidades */}
       <div className="space-y-6">

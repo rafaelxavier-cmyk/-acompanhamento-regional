@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { query, queryOne } from '../db/connection'
+import { adminOnly } from '../middleware/auth'
 
 const router = Router()
 
@@ -97,7 +98,7 @@ router.get('/config', (req, res) => {
   res.json({ configured: !!process.env.GROQ_API_KEY, model: 'llama-3.3-70b-versatile' })
 })
 
-router.post('/config', (req, res) => {
+router.post('/config', adminOnly, (req, res) => {
   const { apiKey } = req.body
   process.env.GROQ_API_KEY = apiKey
   res.json({ ok: true })
