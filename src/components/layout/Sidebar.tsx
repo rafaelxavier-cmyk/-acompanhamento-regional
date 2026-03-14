@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, MapPin, History, Settings, AlertCircle, ChevronDown, Layers, Menu, X, Users, LogOut, Shield, User, Sparkles } from 'lucide-react'
+import { LayoutDashboard, MapPin, History, Settings, AlertCircle, ChevronDown, Layers, Menu, X, Users, LogOut, Shield, User, Sparkles, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import { useRegional } from '../../context/RegionalContext'
 import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../lib/utils'
 import RelatorioIAModal from '../RelatorioIAModal'
+import RegistrarVisitaModal from '../RegistrarVisitaModal'
 
 export default function Sidebar() {
   const { regionais, todasRegionais, regionalAtiva, setRegionalAtiva } = useRegional()
@@ -13,6 +14,7 @@ export default function Sidebar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [relatorioOpen, setRelatorioOpen] = useState(false)
+  const [registrarOpen, setRegistrarOpen] = useState(false)
 
   const navItems = [
     { to: '/',              icon: LayoutDashboard, label: 'Dashboard'     },
@@ -81,11 +83,18 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Botão IA */}
-      <div className="px-3 py-3 border-b border-brand-700">
+      {/* Ações rápidas */}
+      <div className="px-3 py-3 border-b border-brand-700 space-y-2">
+        <button
+          onClick={() => { setRegistrarOpen(true); setMobileOpen(false) }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-500 hover:bg-green-400 text-white text-sm font-semibold transition-colors"
+        >
+          <ClipboardList size={15} className="flex-shrink-0" />
+          <span>Registrar visita</span>
+        </button>
         <button
           onClick={() => { setRelatorioOpen(true); setMobileOpen(false) }}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-white text-sm font-medium transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-brand-700 hover:bg-brand-600 text-white text-sm font-medium transition-colors"
         >
           <Sparkles size={15} className="flex-shrink-0" />
           <span>Relatório por IA</span>
@@ -161,7 +170,8 @@ export default function Sidebar() {
         {sidebarContent}
       </aside>
 
-      {/* Modal Relatório IA */}
+      {/* Modais */}
+      {registrarOpen && <RegistrarVisitaModal onClose={() => setRegistrarOpen(false)} />}
       {relatorioOpen && <RelatorioIAModal onClose={() => setRelatorioOpen(false)} />}
     </>
   )
