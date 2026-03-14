@@ -116,7 +116,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
   function exportarPDF() {
     if (!resultado) return
     const data = formatDate(resultado.dataUltimaVisita)
-    const logoUrl = `${window.location.origin}/logo.svg`
+    const logoUrl = `${window.location.origin}/logo.jpg`
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
