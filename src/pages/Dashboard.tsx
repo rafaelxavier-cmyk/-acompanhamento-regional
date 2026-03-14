@@ -47,9 +47,9 @@ export default function Dashboard() {
     : demandas
 
   // Totais da regional ativa
-  const totalVisitas  = resumosFiltrados.reduce((s, r) => s + (r.totalVisitas ?? 0), 0)
+  const totalVisitas  = resumosFiltrados.reduce((s, r) => s + Number(r.totalVisitas ?? 0), 0)
   const totalDemandas = demandasFiltradas.length
-  const totalCriticas = resumosFiltrados.reduce((s, r) => s + (r.macrocaixasCriticas ?? 0), 0)
+  const totalCriticas = resumosFiltrados.reduce((s, r) => s + Number(r.macrocaixasCriticas ?? 0), 0)
   const semVisita     = resumosFiltrados.filter(r => !r.ultimaVisita).length
 
   const isPeriodoDefault = dataInicio === DEFAULT_INI && dataFim === DEFAULT_FIM
@@ -190,7 +190,7 @@ export default function Dashboard() {
 
                         {/* Total visitas */}
                         <td className="px-5 py-3 text-center">
-                          <span className="text-gray-700 font-semibold">{u.totalVisitas ?? 0}</span>
+                          <span className="text-gray-700 font-semibold">{Number(u.totalVisitas ?? 0)}</span>
                         </td>
 
                         {/* Última visita */}
@@ -209,9 +209,9 @@ export default function Dashboard() {
 
                         {/* Demandas abertas */}
                         <td className="px-5 py-3 text-center">
-                          {(u.demandasAbertas ?? 0) > 0 ? (
+                          {Number(u.demandasAbertas ?? 0) > 0 ? (
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-100 text-orange-700 font-bold text-xs">
-                              {u.demandasAbertas}
+                              {Number(u.demandasAbertas)}
                             </span>
                           ) : (
                             <span className="text-gray-300">—</span>
@@ -220,9 +220,9 @@ export default function Dashboard() {
 
                         {/* Crítico */}
                         <td className="px-5 py-3 text-center">
-                          {(u.macrocaixasCriticas ?? 0) > 0 ? (
+                          {Number(u.macrocaixasCriticas ?? 0) > 0 ? (
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700 font-bold text-xs">
-                              {u.macrocaixasCriticas}
+                              {Number(u.macrocaixasCriticas)}
                             </span>
                           ) : (
                             <CheckCircle2 size={16} className="text-gray-200 mx-auto" />
@@ -231,9 +231,9 @@ export default function Dashboard() {
 
                         {/* Atenção */}
                         <td className="px-5 py-3 text-center">
-                          {(u.macrocaixasAtencao ?? 0) > 0 ? (
+                          {Number(u.macrocaixasAtencao ?? 0) > 0 ? (
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-yellow-100 text-yellow-700 font-bold text-xs">
-                              {u.macrocaixasAtencao}
+                              {Number(u.macrocaixasAtencao)}
                             </span>
                           ) : (
                             <CheckCircle2 size={16} className="text-gray-200 mx-auto" />

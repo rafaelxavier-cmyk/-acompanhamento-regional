@@ -12,7 +12,7 @@ router.get('/recentes', async (req, res) => {
       v.unidade_id,
       u.nome  AS unidade_nome,
       u.regional_id,
-      (SELECT COUNT(*) FROM registros_macrocaixa r WHERE r.visita_id = v.id AND r.status != 'nao_iniciado') AS total_registros
+      (SELECT COUNT(*)::int FROM registros_macrocaixa r WHERE r.visita_id = v.id AND r.status != 'nao_iniciado') AS total_registros
     FROM visitas v
     LEFT JOIN unidades u ON u.id = v.unidade_id
     ORDER BY v.data_visita DESC

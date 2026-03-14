@@ -12,20 +12,20 @@ router.get('/resumo', async (req, res) => {
       u.id,
       u.nome,
       u.regional_id,
-      COUNT(DISTINCT v.id)                                          AS total_visitas,
+      COUNT(DISTINCT v.id)::int                                     AS total_visitas,
       MAX(v.data_visita)                                            AS ultima_visita,
-      (SELECT COUNT(*) FROM demandas d
+      (SELECT COUNT(*)::int FROM demandas d
          JOIN registros_macrocaixa r ON r.id = d.registro_id
          JOIN visitas vv             ON vv.id = r.visita_id
        WHERE vv.unidade_id = u.id AND d.status_demanda = 'aberta') AS demandas_abertas,
-      (SELECT COUNT(*) FROM registros_macrocaixa r
+      (SELECT COUNT(*)::int FROM registros_macrocaixa r
          JOIN visitas vv ON vv.id = r.visita_id
        WHERE vv.unidade_id = u.id
          AND vv.id = (SELECT id FROM visitas
                       WHERE unidade_id = u.id AND data_visita BETWEEN ? AND ?
                       ORDER BY data_visita DESC LIMIT 1)
          AND r.status = 'critico')                                  AS macrocaixas_criticas,
-      (SELECT COUNT(*) FROM registros_macrocaixa r
+      (SELECT COUNT(*)::int FROM registros_macrocaixa r
          JOIN visitas vv ON vv.id = r.visita_id
        WHERE vv.unidade_id = u.id
          AND vv.id = (SELECT id FROM visitas
