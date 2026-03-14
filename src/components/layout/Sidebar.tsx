@@ -34,7 +34,7 @@ export default function Sidebar() {
     <>
       {/* Logo */}
       <div className="px-4 pt-5 pb-4 border-b border-brand-700">
-        <img src={logoUrl} alt="Matriz Educação" className="w-full object-contain" style={{ maxHeight: 68 }} />
+        <img src={logoUrl} alt="Matriz Educação" className="w-full object-contain" style={{ maxHeight: 80 }} />
         <p className="text-white/70 font-medium text-xs tracking-widest uppercase text-center mt-3">
           Acompanhamento Regional
         </p>
