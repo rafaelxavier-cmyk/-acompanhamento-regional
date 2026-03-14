@@ -33,16 +33,11 @@ export default function Sidebar() {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="px-3 py-3 border-b border-brand-700">
-        <div className="bg-white rounded-lg mb-2 flex items-center justify-center" style={{ height: 64 }}>
-          <img
-            src={logoUrl}
-            alt="Matriz Educação"
-            className="w-full object-contain"
-            style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}
-          />
+      <div className="px-3 pt-3 pb-2 border-b border-brand-700">
+        <div className="bg-white rounded-lg overflow-hidden" style={{ height: 58 }}>
+          <img src={logoUrl} alt="Matriz Educação" className="w-full h-full object-contain" />
         </div>
-        <p className="text-brand-200 font-semibold text-xs leading-tight tracking-wide text-center">Acompanhamento Regional</p>
+        <p className="text-brand-200 font-bold text-sm leading-tight tracking-wide text-center mt-2">Acompanhamento Regional</p>
       </div>
 
       {/* Regional selector */}
