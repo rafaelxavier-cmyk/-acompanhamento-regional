@@ -128,7 +128,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
     body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #1a202c; padding: 40px 48px; line-height: 1.6; }
     header { border-bottom: 2px solid #237f53; padding-bottom: 16px; margin-bottom: 24px; }
     .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .header-top img { height: 36px; }
+    .header-top img { height: 80px; }
     .header-top .data-gerado { font-size: 11px; color: #718096; }
     header h1 { font-size: 20px; color: #16432e; margin-bottom: 4px; }
     header .meta { color: #718096; font-size: 12px; display: flex; gap: 16px; margin-top: 8px; }
