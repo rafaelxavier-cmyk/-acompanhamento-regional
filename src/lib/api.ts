@@ -3,6 +3,7 @@ import type {
   RegistroMacrocaixa, UltimoRegistro, UnidadeResumo,
   Demanda, DemandaAberta
 } from '../types'
+import type { AuthUser } from '../context/AuthContext'
 
 const BASE = '/api/v1'
 
@@ -15,17 +16,39 @@ async function req<T>(method: string, path: string, body?: unknown, query?: Reco
     }
     if (params.toString()) url += '?' + params.toString()
   }
+  const token = localStorage.getItem('token')
+  const headers: Record<string, string> = {}
+  if (body) headers['Content-Type'] = 'application/json'
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
   const res = await fetch(url, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   })
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`${res.status}: ${text}`)
+  }
   if (res.status === 204) return undefined as T
   return res.json()
 }
 
 export const api = {
+  // Auth
+  login: (login: string, senha: string) =>
+    req<{ token: string; trocarSenha: boolean; user: AuthUser }>('POST', '/auth/login', { login, senha }),
+  trocarSenha: (novaSenha: string, senhaAtual?: string) =>
+    req<{ token: string; user: AuthUser }>('POST', '/auth/trocar-senha', { novaSenha, senhaAtual }),
+  me: () => req<AuthUser>('GET', '/auth/me'),
+
+  // Usuarios (admin only)
+  getUsuarios: () => req<any[]>('GET', '/usuarios'),
+  criarUsuario: (data: { nome: string; login: string; senha: string; perfil: string; regionalIds: number[] }) =>
+    req<any>('POST', '/usuarios', data),
+  atualizarUsuario: (id: number, data: Record<string, unknown>) => req<any>('PATCH', `/usuarios/${id}`, data),
+  excluirUsuario: (id: number) => req<void>('DELETE', `/usuarios/${id}`),
+
   // Regionais
   getRegionais: () => req<Regional[]>('GET', '/regionais'),
   updateRegional: (id: number, data: { nome?: string; diretorNome?: string }) => req<Regional>('PATCH', `/regionais/${id}`, data),

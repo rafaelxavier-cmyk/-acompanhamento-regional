@@ -1,30 +1,29 @@
+import bcrypt from 'bcryptjs'
 import { run, query, insert } from './connection'
 
 export async function runMigrations(): Promise<void> {
-  await run(`PRAGMA foreign_keys = ON`)
-
   await run(`
     CREATE TABLE IF NOT EXISTS regionais (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      id           SERIAL PRIMARY KEY,
       nome         TEXT    NOT NULL UNIQUE,
       diretor_nome TEXT,
-      created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+      created_at   TEXT    NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS'))
     )
   `)
 
   await run(`
     CREATE TABLE IF NOT EXISTS unidades (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      id          SERIAL PRIMARY KEY,
       nome        TEXT    NOT NULL,
       regional_id INTEGER NOT NULL REFERENCES regionais(id),
       ativa       INTEGER NOT NULL DEFAULT 1,
-      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+      created_at  TEXT    NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS'))
     )
   `)
 
   await run(`
     CREATE TABLE IF NOT EXISTS macrocaixas (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      id        SERIAL PRIMARY KEY,
       codigo    TEXT    NOT NULL UNIQUE,
       titulo    TEXT    NOT NULL,
       descricao TEXT,
@@ -35,34 +34,34 @@ export async function runMigrations(): Promise<void> {
 
   await run(`
     CREATE TABLE IF NOT EXISTS visitas (
-      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      id               SERIAL PRIMARY KEY,
       unidade_id       INTEGER NOT NULL REFERENCES unidades(id),
       data_visita      TEXT    NOT NULL,
       diretor_nome     TEXT,
       status           TEXT    NOT NULL DEFAULT 'em_andamento',
       observacao_geral TEXT,
-      created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+      created_at       TEXT    NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS')),
       updated_at       TEXT
     )
   `)
 
   await run(`
     CREATE TABLE IF NOT EXISTS registros_macrocaixa (
-      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      id               SERIAL PRIMARY KEY,
       visita_id        INTEGER NOT NULL REFERENCES visitas(id),
       macrocaixa_id    INTEGER NOT NULL REFERENCES macrocaixas(id),
       status           TEXT    NOT NULL DEFAULT 'nao_iniciado',
       observacao       TEXT,
       pontos_positivos TEXT,
       pontos_atencao   TEXT,
-      created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+      created_at       TEXT    NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS')),
       updated_at       TEXT
     )
   `)
 
   await run(`
     CREATE TABLE IF NOT EXISTS demandas (
-      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      id             SERIAL PRIMARY KEY,
       registro_id    INTEGER NOT NULL REFERENCES registros_macrocaixa(id),
       titulo         TEXT    NOT NULL,
       descricao      TEXT,
@@ -73,8 +72,30 @@ export async function runMigrations(): Promise<void> {
       external_id    TEXT,
       sync_status    TEXT    NOT NULL DEFAULT 'pendente',
       sync_at        TEXT,
-      created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+      created_at     TEXT    NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS')),
       updated_at     TEXT
+    )
+  `)
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id          SERIAL PRIMARY KEY,
+      nome        TEXT    NOT NULL,
+      login       TEXT    NOT NULL UNIQUE,
+      senha_hash  TEXT    NOT NULL,
+      perfil      TEXT    NOT NULL DEFAULT 'usuario',
+      ativo       INTEGER NOT NULL DEFAULT 1,
+      trocar_senha INTEGER NOT NULL DEFAULT 1,
+      created_at  TEXT    NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS')),
+      updated_at  TEXT
+    )
+  `)
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS usuario_regionais (
+      usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
+      regional_id INTEGER NOT NULL REFERENCES regionais(id),
+      PRIMARY KEY (usuario_id, regional_id)
     )
   `)
 
@@ -82,18 +103,15 @@ export async function runMigrations(): Promise<void> {
 }
 
 async function runSeed(): Promise<void> {
-  const count = await query<{ c: number }>('SELECT COUNT(*) as c FROM regionais')
-  if ((count[0]?.c ?? 0) > 0) return
+  const count = await query<{ c: string }>('SELECT COUNT(*) as c FROM regionais')
+  if (Number(count[0]?.c ?? 0) > 0) return
 
   const r1 = await insert("INSERT INTO regionais (nome) VALUES ('Regional 1')")
   const r2 = await insert("INSERT INTO regionais (nome) VALUES ('Regional 2')")
 
-  const units1 = ['Bangu', 'Campo Grande', 'Retiro', 'São João de Meriti', 'Tijuca']
-  const units2 = ['Caxias', 'Madureira', 'Nova Iguaçu', 'Rocha Miranda', 'Taquara']
-
-  for (const nome of units1)
+  for (const nome of ['Bangu', 'Campo Grande', 'Retiro', 'São João de Meriti', 'Tijuca'])
     await run('INSERT INTO unidades (nome, regional_id) VALUES (?, ?)', [nome, r1])
-  for (const nome of units2)
+  for (const nome of ['Caxias', 'Madureira', 'Nova Iguaçu', 'Rocha Miranda', 'Taquara'])
     await run('INSERT INTO unidades (nome, regional_id) VALUES (?, ?)', [nome, r2])
 
   const macros: [string, string, string, number][] = [
@@ -110,8 +128,15 @@ async function runSeed(): Promise<void> {
   ]
 
   for (const [c, t, d, o] of macros)
-    await run(
-      'INSERT INTO macrocaixas (codigo, titulo, descricao, ordem) VALUES (?, ?, ?, ?)',
-      [c, t, d, o]
+    await run('INSERT INTO macrocaixas (codigo, titulo, descricao, ordem) VALUES (?, ?, ?, ?)', [c, t, d, o])
+
+  // Seed admin user (trocar_senha=1 → obrigado a trocar na 1ª entrada)
+  const adminExists = await query('SELECT id FROM usuarios WHERE login = ?', ['admin'])
+  if (adminExists.length === 0) {
+    const hash = await bcrypt.hash('admin123', 10)
+    await insert(
+      'INSERT INTO usuarios (nome, login, senha_hash, perfil, ativo, trocar_senha, created_at) VALUES (?, ?, ?, ?, 1, 1, ?)',
+      ['Administrador', 'admin', hash, 'admin', new Date().toISOString()]
     )
+  }
 }

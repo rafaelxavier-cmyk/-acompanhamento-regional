@@ -1,8 +1,6 @@
-import { createClient, type Client } from '@libsql/client'
-import fs from 'fs'
-import path from 'path'
+import postgres from 'postgres'
 
-let _client: Client | null = null
+let _sql: ReturnType<typeof postgres> | null = null
 
 function toCamel(obj: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
@@ -13,46 +11,44 @@ function toCamel(obj: Record<string, unknown>): Record<string, unknown> {
   return out
 }
 
-export function initDb(): void {
-  const url = process.env.TURSO_DATABASE_URL || 'file:./data/app.db'
-  const authToken = process.env.TURSO_AUTH_TOKEN
-
-  // Garante o diretório para banco local
-  if (url.startsWith('file:')) {
-    const filePath = url.replace('file:', '')
-    fs.mkdirSync(path.dirname(path.resolve(filePath)), { recursive: true })
-  }
-
-  _client = createClient({ url, authToken })
+// Converte ? para $1, $2, $3...
+function toNumbered(sql: string): string {
+  let i = 0
+  return sql.replace(/\?/g, () => `$${++i}`)
 }
 
-export function getClient(): Client {
-  if (!_client) throw new Error('DB não inicializado')
-  return _client
+export function initDb(): void {
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error('DATABASE_URL não configurada')
+  _sql = postgres(url, { ssl: 'require', max: 5 })
+}
+
+export function getClient() {
+  if (!_sql) throw new Error('DB não inicializado')
+  return _sql
 }
 
 export async function query<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = []
 ): Promise<T[]> {
-  const result = await getClient().execute({ sql, args: params as any[] })
-  return result.rows.map(row => toCamel(row as unknown as Record<string, unknown>)) as T[]
+  const rows = await getClient().unsafe(toNumbered(sql), params as any[])
+  return rows.map(r => toCamel(r as Record<string, unknown>)) as T[]
 }
 
 export async function queryOne<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = []
 ): Promise<T | undefined> {
-  const result = await getClient().execute({ sql, args: params as any[] })
-  const row = result.rows[0]
-  return row ? (toCamel(row as unknown as Record<string, unknown>) as T) : undefined
+  const rows = await getClient().unsafe(toNumbered(sql), params as any[])
+  return rows[0] ? (toCamel(rows[0] as Record<string, unknown>) as T) : undefined
 }
 
 export async function run(sql: string, params: unknown[] = []): Promise<void> {
-  await getClient().execute({ sql, args: params as any[] })
+  await getClient().unsafe(toNumbered(sql), params as any[])
 }
 
 export async function insert(sql: string, params: unknown[] = []): Promise<number> {
-  const result = await getClient().execute({ sql, args: params as any[] })
-  return Number(result.lastInsertRowid)
+  const rows = await getClient().unsafe(toNumbered(sql) + ' RETURNING id', params as any[])
+  return Number(rows[0]?.id)
 }

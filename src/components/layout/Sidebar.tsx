@@ -1,20 +1,29 @@
-import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, MapPin, History, Settings, AlertCircle, ChevronDown, Layers, Menu, X } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, MapPin, History, Settings, AlertCircle, ChevronDown, Layers, Menu, X, Users, LogOut, Shield, User } from 'lucide-react'
 import { useState } from 'react'
 import { useRegional } from '../../context/RegionalContext'
+import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../lib/utils'
 
-const NAV_ITEMS = [
-  { to: '/',              icon: LayoutDashboard, label: 'Dashboard'     },
-  { to: '/demandas',      icon: AlertCircle,     label: 'Demandas'      },
-  { to: '/historico',     icon: History,         label: 'Histórico'     },
-  { to: '/configuracoes', icon: Settings,        label: 'Configurações' },
-]
-
 export default function Sidebar() {
-  const { regionais, regionalAtiva, setRegionalAtiva } = useRegional()
+  const { regionais, todasRegionais, regionalAtiva, setRegionalAtiva } = useRegional()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const navItems = [
+    { to: '/',              icon: LayoutDashboard, label: 'Dashboard'     },
+    { to: '/demandas',      icon: AlertCircle,     label: 'Demandas'      },
+    { to: '/historico',     icon: History,         label: 'Histórico'     },
+    { to: '/configuracoes', icon: Settings,        label: 'Configurações' },
+    ...(user?.perfil === 'admin' ? [{ to: '/usuarios', icon: Users, label: 'Usuários' }] : []),
+  ]
+
+  function handleLogout() {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   const sidebarContent = (
     <>
@@ -38,24 +47,28 @@ export default function Sidebar() {
                 : <MapPin size={14} className="text-brand-300 flex-shrink-0" />
               }
               <span className="flex-1 text-left truncate">{regionalAtiva?.nome ?? 'Todas as regionais'}</span>
-              {regionais.length > 1 && (
+              {(todasRegionais || regionais.length > 1) && (
                 <ChevronDown size={14} className={cn('text-brand-300 transition-transform flex-shrink-0', dropdownOpen && 'rotate-180')} />
               )}
             </button>
 
-            {dropdownOpen && regionais.length > 1 && (
+            {dropdownOpen && (todasRegionais || regionais.length > 1) && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-brand-800 border border-brand-600 rounded-lg overflow-hidden shadow-xl z-50">
-                <button
-                  onClick={() => { setRegionalAtiva(null); setDropdownOpen(false) }}
-                  className={cn('w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors border-b border-brand-700', regionalAtiva === null ? 'bg-brand-600 text-white font-medium' : 'text-brand-200 hover:bg-brand-700 hover:text-white')}
-                >
-                  <Layers size={13} /> Todas as regionais
-                </button>
+                {todasRegionais && (
+                  <button
+                    onClick={() => { setRegionalAtiva(null); setDropdownOpen(false) }}
+                    className={cn('w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors border-b border-brand-700',
+                      regionalAtiva === null ? 'bg-brand-600 text-white font-medium' : 'text-brand-200 hover:bg-brand-700 hover:text-white')}
+                  >
+                    <Layers size={13} /> Todas as regionais
+                  </button>
+                )}
                 {regionais.map(r => (
                   <button
                     key={r.id}
                     onClick={() => { setRegionalAtiva(r); setDropdownOpen(false) }}
-                    className={cn('w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors', r.id === regionalAtiva?.id ? 'bg-brand-600 text-white font-medium' : 'text-brand-200 hover:bg-brand-700 hover:text-white')}
+                    className={cn('w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors',
+                      r.id === regionalAtiva?.id ? 'bg-brand-600 text-white font-medium' : 'text-brand-200 hover:bg-brand-700 hover:text-white')}
                   >
                     <MapPin size={13} /> {r.nome}
                   </button>
@@ -68,7 +81,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
@@ -83,6 +96,25 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* User info + logout */}
+      <div className="px-3 py-3 border-t border-brand-700">
+        <div className="flex items-center gap-2 px-2 py-1 mb-1">
+          <div className="p-1 bg-brand-700 rounded-full">
+            {user?.perfil === 'admin' ? <Shield size={12} className="text-brand-300" /> : <User size={12} className="text-brand-300" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-xs font-medium truncate">{user?.nome}</p>
+            <p className="text-brand-400 text-xs truncate">{user?.perfil === 'admin' ? 'Administrador' : 'Usuário'}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-brand-300 hover:bg-brand-800 hover:text-white text-sm transition-colors"
+        >
+          <LogOut size={14} /> Sair
+        </button>
+      </div>
     </>
   )
 
