@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { api } from '../lib/api'
 
 export interface AuthUser {
   id: number
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   useEffect(() => {
     const t = localStorage.getItem('token')
     const u = localStorage.getItem('user')
@@ -36,6 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
+  // Heartbeat a cada 5 minutos enquanto logado
+  useEffect(() => {
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current)
+    if (!user) return
+    heartbeatRef.current = setInterval(() => {
+      api.heartbeat().catch(() => {})
+    }, 5 * 60 * 1000)
+    return () => { if (heartbeatRef.current) clearInterval(heartbeatRef.current) }
+  }, [user])
+
   function login(t: string, u: AuthUser) {
     setToken(t); setUser(u)
     localStorage.setItem('token', t)
@@ -43,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    api.logout().catch(() => {})
     setToken(null); setUser(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')

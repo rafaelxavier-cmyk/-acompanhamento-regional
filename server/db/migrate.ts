@@ -113,6 +113,21 @@ export async function runMigrations(): Promise<void> {
     )
   `)
 
+  await run(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_acesso TEXT`)
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS usuario_sessoes (
+      id           SERIAL PRIMARY KEY,
+      usuario_id   INTEGER NOT NULL REFERENCES usuarios(id),
+      iniciada_em  TEXT    NOT NULL,
+      encerrada_em TEXT,
+      duracao_seg  INTEGER
+    )
+  `)
+
+  // Macrocaixas adicionadas após o seed inicial — idempotentes
+  await run(`INSERT INTO macrocaixas (codigo, titulo, descricao, ordem) VALUES ('#11', 'Gestão de Pessoas', 'Gestão de colaboradores, contratações, desligamentos, afastamentos e clima organizacional', 11) ON CONFLICT (codigo) DO NOTHING`)
+
   await runSeed()
 }
 
@@ -139,6 +154,7 @@ async function runSeed(): Promise<void> {
     ['#12', 'Treinamentos e Desenvolvimento',    'Capacitação de equipes e treinamentos obrigatórios',                        8],
     ['#13', 'Compliance, Segurança e Normas',    'Conformidade, segurança do trabalho e normas internas',                     9],
     ['#17', 'Comunicação e Gestão de Crises',    'Comunicação com famílias, posicionamento e gestão de crises',              10],
+    ['#11', 'Gestão de Pessoas',                 'Gestão de colaboradores, contratações, desligamentos, afastamentos e clima organizacional', 11],
   ]
 
   for (const [c, t, d, o] of macros)

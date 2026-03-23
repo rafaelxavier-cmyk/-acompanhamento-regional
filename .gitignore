@@ -8,3 +8,5 @@ out/
 dev.db
 data/*.db
 .env
+
+.vercel

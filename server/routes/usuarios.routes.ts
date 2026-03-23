@@ -8,7 +8,7 @@ router.use(authMiddleware, adminOnly)
 
 router.get('/', async (_req, res) => {
   const users = await query<any>(`
-    SELECT id, nome, login, perfil, ativo, trocar_senha, created_at
+    SELECT id, nome, login, perfil, ativo, trocar_senha, created_at, ultimo_acesso
     FROM usuarios ORDER BY nome
   `)
   for (const u of users) {
@@ -16,8 +16,42 @@ router.get('/', async (_req, res) => {
       'SELECT regional_id AS "regionalId" FROM usuario_regionais WHERE usuario_id = ?', [u.id]
     )
     u.regionalIds = regs.map(r => r.regionalId)
+
+    const stats = await query<any>(`
+      SELECT
+        COALESCE(SUM(
+          CASE
+            WHEN duracao_seg IS NOT NULL THEN duracao_seg
+            WHEN encerrada_em IS NOT NULL THEN
+              EXTRACT(EPOCH FROM (encerrada_em::timestamp - iniciada_em::timestamp))::integer
+            ELSE 0
+          END
+        ), 0) AS total_segundos,
+        COUNT(*) AS total_sessoes
+      FROM usuario_sessoes WHERE usuario_id = ?
+    `, [u.id])
+    u.totalSegundosOnline = Number(stats[0]?.totalSegundos ?? 0)
+    u.totalSessoes = Number(stats[0]?.totalSessoes ?? 0)
   }
   res.json(users)
+})
+
+router.get('/:id/sessoes', async (req, res) => {
+  const id = Number(req.params.id)
+  const sessoes = await query<any>(`
+    SELECT id, iniciada_em, encerrada_em,
+      CASE
+        WHEN duracao_seg IS NOT NULL THEN duracao_seg
+        WHEN encerrada_em IS NOT NULL THEN
+          EXTRACT(EPOCH FROM (encerrada_em::timestamp - iniciada_em::timestamp))::integer
+        ELSE NULL
+      END AS duracao_seg
+    FROM usuario_sessoes
+    WHERE usuario_id = ?
+    ORDER BY iniciada_em DESC
+    LIMIT 50
+  `, [id])
+  res.json(sessoes)
 })
 
 router.post('/', async (req, res) => {

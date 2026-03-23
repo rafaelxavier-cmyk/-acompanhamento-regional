@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { History, ChevronRight, Pencil, Trash2, X, Check } from 'lucide-react'
+import { History, ChevronRight, Pencil, Trash2, X, Check, RotateCcw } from 'lucide-react'
 import type { VisitaRecente, Unidade } from '../types'
 import { formatDate } from '../lib/utils'
 import { useRegional } from '../context/RegionalContext'
@@ -27,16 +27,23 @@ export default function HistoricoPage() {
 
   const [confirmandoExclusao, setConfirmandoExclusao] = useState<VisitaRecente | null>(null)
   const [excluindo, setExcluindo] = useState(false)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState(false)
 
-  useEffect(() => {
+  function carregar() {
+    setCarregando(true)
+    setErro(false)
     Promise.all([
       api.getVisitasRecentes(100),
       api.getUnidades(),
     ]).then(([vis, units]) => {
       setVisitas(vis)
       setUnidades(units)
-    })
-  }, [])
+    }).catch(() => setErro(true))
+      .finally(() => setCarregando(false))
+  }
+
+  useEffect(() => { carregar() }, [])
 
   const visitasDaRegional = regionalAtiva
     ? visitas.filter(v => v.regionalId === regionalAtiva.id)
@@ -90,6 +97,21 @@ export default function HistoricoPage() {
       setExcluindo(false)
     }
   }
+
+  if (carregando) return (
+    <div className="p-8 flex items-center justify-center min-h-[60vh] text-gray-400 text-sm gap-2">
+      <RotateCcw size={16} className="animate-spin" /> Carregando...
+    </div>
+  )
+
+  if (erro) return (
+    <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] gap-3">
+      <p className="text-gray-500 text-sm">Não foi possível carregar o histórico.</p>
+      <button onClick={carregar} className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">
+        <RotateCcw size={14} /> Tentar novamente
+      </button>
+    </div>
+  )
 
   return (
     <div className="p-8 max-w-5xl mx-auto">

@@ -131,9 +131,6 @@ export default function DemandasPage() {
                     {d.descricao && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{d.descricao}</p>}
                   </td>
                   <td className="px-5 py-3 text-gray-600">{d.unidadeNome}</td>
-                  <td className="px-5 py-3">
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{d.macrocaixaCodigo}</span>
-                  </td>
                   <td className="px-5 py-3 text-gray-500 text-xs">{d.responsavel ?? '—'}</td>
                   <td className="px-5 py-3 text-gray-500 text-xs">{d.prazo ? formatDate(d.prazo) : '—'}</td>
                   <td className="px-5 py-3">

@@ -1,13 +1,24 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronRight, ChevronDown, CheckCircle2, Save, Plus, Trash2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, CheckCircle2, Save, Plus, Trash2, User, Calendar } from 'lucide-react'
 import type {
   Visita, Unidade, Macrocaixa, RegistroMacrocaixa,
-  StatusRegistro, UltimoRegistro, Demanda, Regional
+  StatusRegistro, UltimoRegistro, Demanda, Regional, PrioridadeDemanda, StatusDemanda
 } from '../types'
-import { formatDateLong, STATUS_REGISTRO_LABEL, hoje } from '../lib/utils'
+import { formatDateLong, STATUS_REGISTRO_LABEL, hoje, formatDate } from '../lib/utils'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import { DemandaModal } from './Kanban'
+
+const PRIORIDADE_STYLE: Record<PrioridadeDemanda, string> = {
+  urgente: 'bg-red-100 text-red-700 border-red-200',
+  alta:    'bg-orange-100 text-orange-700 border-orange-200',
+  normal:  'bg-gray-100 text-gray-600 border-gray-200',
+  baixa:   'bg-blue-50 text-blue-600 border-blue-200',
+}
+const PRIORIDADE_LABEL: Record<PrioridadeDemanda, string> = {
+  urgente: 'Urgente', alta: 'Alta', normal: 'Normal', baixa: 'Baixa',
+}
 
 // ── Status config ──────────────────────────────────────────────────────────────
 const STATUS_OPTIONS: { value: StatusRegistro; label: string; color: string; dot: string }[] = [
@@ -26,16 +37,16 @@ function statusConfig(s: StatusRegistro) {
 interface MacrocaixaBlockProps {
   macrocaixa: Macrocaixa
   visita: Visita
+  unidade: Unidade
   registro: RegistroMacrocaixa | undefined
   ultimoRegistro: UltimoRegistro | undefined
   onUpdate: (macrocaixaId: number, data: Partial<RegistroMacrocaixa>) => void
 }
 
-function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdate }: MacrocaixaBlockProps) {
+function MacrocaixaBlock({ macrocaixa, visita, unidade, registro, ultimoRegistro, onUpdate }: MacrocaixaBlockProps) {
   const [open, setOpen] = useState(false)
   const [demandas, setDemandas] = useState<Demanda[]>([])
-  const [novaDemanda, setNovaDemanda] = useState('')
-  const [adicionandoDemanda, setAdicionandoDemanda] = useState(false)
+  const [modalDemanda, setModalDemanda] = useState(false)
 
   const status: StatusRegistro = registro?.status as StatusRegistro ?? 'nao_iniciado'
   const cfg = statusConfig(status)
@@ -47,12 +58,17 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
     }
   }, [open, registro])
 
-  async function criarDemanda() {
-    if (!novaDemanda.trim() || !registro) return
-    const d = await api.createDemanda(registro.id, { titulo: novaDemanda.trim() })
+  async function criarDemanda(form: { titulo: string; descricao: string; prioridade: PrioridadeDemanda; responsavel: string; prazo: string; unidadeId: number | ''; statusDemanda: StatusDemanda }) {
+    if (!registro) return
+    const d = await api.createDemanda(registro.id, {
+      titulo: form.titulo,
+      descricao: form.descricao || undefined,
+      prioridade: form.prioridade,
+      responsavel: form.responsavel || undefined,
+      prazo: form.prazo || undefined,
+    })
     setDemandas(prev => [...prev, d])
-    setNovaDemanda('')
-    setAdicionandoDemanda(false)
+    setModalDemanda(false)
   }
 
   async function concluirDemanda(id: number) {
@@ -75,7 +91,6 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
         onClick={() => setOpen(o => !o)}
       >
         <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
-        <span className="text-xs font-bold text-gray-400 w-8">{macrocaixa.codigo}</span>
         <span className="flex-1 font-medium text-gray-800 text-sm">{macrocaixa.titulo}</span>
 
         {/* Status selector — não propaga o click para o accordion */}
@@ -84,7 +99,6 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
             value={status}
             onChange={e => onUpdate(macrocaixa.id, { status: e.target.value as StatusRegistro })}
             className={cn('text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer appearance-none pr-6', cfg.color)}
-            disabled={visita.status === 'concluida'}
           >
             {STATUS_OPTIONS.map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -126,9 +140,10 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
                 rows={3}
                 defaultValue={registro?.pontosPositivos ?? ''}
                 placeholder="O que está funcionando bem?"
-                disabled={visita.status === 'concluida'}
                 onBlur={e => onUpdate(macrocaixa.id, { pontosPositivos: e.target.value })}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:bg-gray-50 disabled:text-gray-400"
+                spellCheck={true}
+                lang="pt-BR"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
             </div>
             <div>
@@ -137,9 +152,10 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
                 rows={3}
                 defaultValue={registro?.pontosAtencao ?? ''}
                 placeholder="O que precisa de acompanhamento?"
-                disabled={visita.status === 'concluida'}
                 onBlur={e => onUpdate(macrocaixa.id, { pontosAtencao: e.target.value })}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:bg-gray-50 disabled:text-gray-400"
+                spellCheck={true}
+                lang="pt-BR"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
             </div>
           </div>
@@ -150,9 +166,10 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
               rows={2}
               defaultValue={registro?.observacao ?? ''}
               placeholder="Anotações livres sobre esta macrocaixa..."
-              disabled={visita.status === 'concluida'}
               onBlur={e => onUpdate(macrocaixa.id, { observacao: e.target.value })}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:bg-gray-50 disabled:text-gray-400"
+              spellCheck={true}
+              lang="pt-BR"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300"
             />
           </div>
 
@@ -162,9 +179,9 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
               <label className="text-xs font-semibold text-gray-600">
                 Demandas ({demandas.filter(d => d.statusDemanda === 'aberta').length} abertas)
               </label>
-              {visita.status !== 'concluida' && !adicionandoDemanda && (
+              {visita.status !== 'concluida' && (
                 <button
-                  onClick={() => setAdicionandoDemanda(true)}
+                  onClick={() => setModalDemanda(true)}
                   className="text-xs text-brand-600 hover:text-brand-800 font-medium flex items-center gap-1"
                 >
                   <Plus size={12} /> Adicionar
@@ -172,58 +189,70 @@ function MacrocaixaBlock({ macrocaixa, visita, registro, ultimoRegistro, onUpdat
               )}
             </div>
 
-            {adicionandoDemanda && (
-              <div className="flex gap-2 mb-2">
-                <input
-                  autoFocus
-                  type="text"
-                  value={novaDemanda}
-                  onChange={e => setNovaDemanda(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') criarDemanda(); if (e.key === 'Escape') setAdicionandoDemanda(false) }}
-                  placeholder="Descreva a demanda..."
-                  className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-300"
-                />
-                <button onClick={criarDemanda} className="text-xs bg-brand-700 text-white px-3 py-1.5 rounded-lg hover:bg-brand-600">
-                  Salvar
-                </button>
-                <button onClick={() => setAdicionandoDemanda(false)} className="text-xs text-gray-400 hover:text-gray-600 px-2">
-                  ✕
-                </button>
-              </div>
-            )}
-
             {demandas.length > 0 && (
-              <div className="space-y-1.5">
-                {demandas.map(d => (
-                  <div key={d.id} className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm',
-                    d.statusDemanda === 'concluida' ? 'bg-gray-50 opacity-60' : 'bg-orange-50'
-                  )}>
-                    <button
-                      onClick={() => d.statusDemanda !== 'concluida' && concluirDemanda(d.id)}
-                      className={cn('flex-shrink-0 w-4 h-4 rounded-full border-2 transition-colors',
-                        d.statusDemanda === 'concluida'
-                          ? 'bg-green-400 border-green-400'
-                          : 'border-gray-300 hover:border-green-400'
-                      )}
-                    />
-                    <span className={cn('flex-1', d.statusDemanda === 'concluida' && 'line-through text-gray-400')}>
-                      {d.titulo}
-                    </span>
-                    {d.statusDemanda !== 'concluida' && visita.status !== 'concluida' && (
-                      <button
-                        onClick={() => excluirDemanda(d.id)}
-                        className="text-gray-300 hover:text-red-400 transition-colors"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+              <div className="space-y-2">
+                {demandas.map(d => {
+                  const prazoVencido = d.prazo && d.statusDemanda !== 'concluida' && new Date(d.prazo) < new Date()
+                  return (
+                    <div key={d.id} className={cn(
+                      'rounded-lg border px-3 py-2.5 text-sm',
+                      d.statusDemanda === 'concluida' ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-orange-50 border-orange-100'
+                    )}>
+                      <div className="flex items-start gap-2">
+                        <button
+                          onClick={() => d.statusDemanda !== 'concluida' && concluirDemanda(d.id)}
+                          className={cn('flex-shrink-0 w-4 h-4 rounded-full border-2 mt-0.5 transition-colors',
+                            d.statusDemanda === 'concluida'
+                              ? 'bg-green-400 border-green-400'
+                              : 'border-gray-300 hover:border-green-400'
+                          )}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full border font-semibold uppercase tracking-wide flex-shrink-0', PRIORIDADE_STYLE[d.prioridade])}>
+                              {PRIORIDADE_LABEL[d.prioridade]}
+                            </span>
+                            <span className={cn('font-medium text-gray-800', d.statusDemanda === 'concluida' && 'line-through text-gray-400')}>
+                              {d.titulo}
+                            </span>
+                          </div>
+                          {d.descricao && <p className="text-xs text-gray-400 mt-0.5">{d.descricao}</p>}
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
+                            {d.responsavel && (
+                              <span className="flex items-center gap-1 text-xs text-gray-500">
+                                <User size={10} />{d.responsavel}
+                              </span>
+                            )}
+                            {d.prazo && (
+                              <span className={cn('flex items-center gap-1 text-xs', prazoVencido ? 'text-red-500 font-medium' : 'text-gray-500')}>
+                                <Calendar size={10} />{formatDate(d.prazo)}{prazoVencido && ' ⚠'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {d.statusDemanda !== 'concluida' && visita.status !== 'concluida' && (
+                          <button onClick={() => excluirDemanda(d.id)} className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
         </div>
+      )}
+
+      {modalDemanda && (
+        <DemandaModal
+          titulo="Nova demanda"
+          unidades={[unidade]}
+          inicial={{ unidadeId: unidade.id, statusDemanda: 'aberta' }}
+          onSalvar={criarDemanda}
+          onFechar={() => setModalDemanda(false)}
+        />
       )}
     </div>
   )
@@ -361,9 +390,10 @@ export default function VisitaPage() {
           rows={2}
           defaultValue={visita.observacaoGeral ?? ''}
           placeholder="Impressão geral, contexto da visita..."
-          disabled={visita.status === 'concluida'}
           onBlur={e => api.updateVisita(visita.id, { observacaoGeral: e.target.value })}
-          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:bg-gray-50 disabled:text-gray-400"
+          spellCheck={true}
+          lang="pt-BR"
+          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300"
         />
       </div>
 
@@ -374,6 +404,7 @@ export default function VisitaPage() {
             key={m.id}
             macrocaixa={m}
             visita={visita}
+            unidade={unidade}
             registro={registros.find(r => r.macrocaixaId === m.id)}
             ultimoRegistro={ultimosRegistros[m.id]}
             onUpdate={handleUpdate}

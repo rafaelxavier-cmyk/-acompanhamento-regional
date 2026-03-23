@@ -21,7 +21,19 @@ async function main() {
   }
 
   const PORT = Number(process.env.PORT) || 3001
-  app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`))
+  app.get('/health', (_, res) => res.json({ ok: true }))
+
+  app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`)
+
+    // Keep-alive: evita hibernação no Render (plano gratuito hiberna após 15min)
+    if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL) {
+      const url = `${process.env.RENDER_EXTERNAL_URL}/health`
+      setInterval(() => {
+        fetch(url).catch(() => {/* silencioso */})
+      }, 14 * 60 * 1000) // a cada 14 minutos
+    }
+  })
 }
 
 main().catch(err => {

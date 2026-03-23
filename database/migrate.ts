@@ -78,6 +78,9 @@ export function runMigrations(): void {
     )
   `)
 
+  // Macrocaixas adicionadas após o seed inicial — idempotentes
+  getDb().run(`INSERT OR IGNORE INTO macrocaixas (codigo, titulo, descricao, ordem) VALUES ('#11', 'Gestão de Pessoas', 'Gestão de colaboradores, contratações, desligamentos, afastamentos e clima organizacional', 11)`)
+
   runSeed()
   saveDb()
 }
@@ -111,6 +114,7 @@ function runSeed(): void {
     ['#12', 'Treinamentos e Desenvolvimento',    'Capacitação de equipes e treinamentos obrigatórios',                         8],
     ['#13', 'Compliance, Segurança e Normas',    'Conformidade, segurança do trabalho e normas internas',                      9],
     ['#17', 'Comunicação e Gestão de Crises',    'Comunicação com famílias, posicionamento e gestão de crises',               10],
+    ['#11', 'Gestão de Pessoas',                 'Gestão de colaboradores, contratações, desligamentos, afastamentos e clima organizacional', 11],
   ]
 
   macros.forEach(([c, t, d, o]) =>

@@ -7,7 +7,7 @@ import type { AuthUser } from '../context/AuthContext'
 
 const BASE = '/api/v1'
 
-async function req<T>(method: string, path: string, body?: unknown, query?: Record<string, string | undefined>): Promise<T> {
+async function req<T>(method: string, path: string, body?: unknown, query?: Record<string, string | undefined>, _retries = 2): Promise<T> {
   let url = BASE + path
   if (query) {
     const params = new URLSearchParams()
@@ -21,17 +21,27 @@ async function req<T>(method: string, path: string, body?: unknown, query?: Reco
   if (body) headers['Content-Type'] = 'application/json'
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`${res.status}: ${text}`)
+  try {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`${res.status}: ${text}`)
+    }
+    if (res.status === 204) return undefined as T
+    return res.json()
+  } catch (err: any) {
+    // Retry em erros de rede (não em 4xx — são erros do cliente)
+    const isNetworkError = !err.message?.match(/^[45]\d\d:/)
+    if (isNetworkError && _retries > 0) {
+      await new Promise(r => setTimeout(r, 1500))
+      return req(method, path, body, query, _retries - 1)
+    }
+    throw err
   }
-  if (res.status === 204) return undefined as T
-  return res.json()
 }
 
 export const api = {
@@ -41,6 +51,8 @@ export const api = {
   trocarSenha: (novaSenha: string, senhaAtual?: string) =>
     req<{ token: string; user: AuthUser }>('POST', '/auth/trocar-senha', { novaSenha, senhaAtual }),
   me: () => req<AuthUser>('GET', '/auth/me'),
+  logout: () => req<{ ok: boolean }>('POST', '/auth/logout'),
+  heartbeat: () => req<{ ok: boolean }>('POST', '/auth/heartbeat'),
 
   // Usuarios (admin only)
   getUsuarios: () => req<any[]>('GET', '/usuarios'),
@@ -48,6 +60,7 @@ export const api = {
     req<any>('POST', '/usuarios', data),
   atualizarUsuario: (id: number, data: Record<string, unknown>) => req<any>('PATCH', `/usuarios/${id}`, data),
   excluirUsuario: (id: number) => req<void>('DELETE', `/usuarios/${id}`),
+  getSessoesUsuario: (id: number) => req<any[]>('GET', `/usuarios/${id}/sessoes`),
 
   // Regionais
   getRegionais: () => req<Regional[]>('GET', '/regionais'),
@@ -94,5 +107,9 @@ export const api = {
   // IA
   iaGetConfig: () => req<Record<string, string>>('GET', '/ia/config'),
   iaSaveApiKey: (apiKey: string) => req<{ ok: boolean }>('POST', '/ia/config', { apiKey }),
-  iaGerarPlano: (unidadeId: number) => req<{ plano: string; unidadeNome: string; dataUltimaVisita: string; totalDemandas: number }>('POST', `/ia/plano/${unidadeId}`),
+  iaGerarPlano: (unidadeId: number, visitaId?: number) => req<{ plano: string; unidadeNome: string; dataUltimaVisita: string; totalDemandas: number }>('POST', `/ia/plano/${unidadeId}`, visitaId ? { visitaId } : {}),
+  iaGerarRelatorioPeriodo: (dataInicio: string, dataFim: string, unidadeIds?: number[]) =>
+    req<{ relatorio: string; totalVisitas: number; totalDemandas: number; dataInicio: string; dataFim: string }>(
+      'POST', '/ia/relatorio-periodo', { dataInicio, dataFim, unidadeIds }
+    ),
 }

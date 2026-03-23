@@ -186,11 +186,6 @@ function KanbanCard({ demanda: d, onMover, onEditar, onExcluir }: CardProps) {
             <span>{formatDate(d.prazo)}{prazoVencido && ' ⚠'}</span>
           </div>
         )}
-        {d.macrocaixaCodigo && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <Tag size={11} className="flex-shrink-0" /><span>{d.macrocaixaCodigo}</span>
-          </div>
-        )}
       </div>
 
       <div className="flex gap-1.5 pt-1 border-t border-gray-100">

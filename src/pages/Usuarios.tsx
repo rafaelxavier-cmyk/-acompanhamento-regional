@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, Plus, Pencil, Trash2, X, Check, Shield, User, RefreshCw } from 'lucide-react'
+import { Users, Plus, Pencil, Trash2, X, Check, Shield, User, RotateCcw, Clock, History } from 'lucide-react'
 import { api } from '../lib/api'
 import type { Regional } from '../types'
 
@@ -11,6 +11,31 @@ interface Usuario {
   ativo: number
   trocarSenha: number
   regionalIds: number[]
+  ultimoAcesso?: string
+  totalSegundosOnline?: number
+  totalSessoes?: number
+}
+
+interface Sessao {
+  id: number
+  iniciadaEm: string
+  encerradaEm?: string
+  duracaoSeg?: number
+}
+
+function formatTempo(segundos: number): string {
+  if (!segundos || segundos <= 0) return '—'
+  const h = Math.floor(segundos / 3600)
+  const m = Math.floor((segundos % 3600) / 60)
+  if (h > 0) return `${h}h ${m}min`
+  if (m > 0) return `${m}min`
+  return '< 1min'
+}
+
+function formatDataHora(iso?: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
 type Form = {
@@ -32,12 +57,29 @@ export default function UsuariosPage() {
   const [salvando, setSalvando] = useState(false)
   const [excluindo, setExcluindo] = useState<Usuario | null>(null)
   const [erro, setErro] = useState('')
+  const [carregando, setCarregando] = useState(true)
+  const [erroLoad, setErroLoad] = useState(false)
+  const [historico, setHistorico] = useState<{ usuario: Usuario; sessoes: Sessao[] } | null>(null)
+  const [loadingHistorico, setLoadingHistorico] = useState(false)
 
-  useEffect(() => {
-    Promise.all([api.getUsuarios(), api.getRegionais()]).then(([u, r]) => {
-      setUsuarios(u); setRegionais(r)
-    })
-  }, [])
+  function carregar() {
+    setCarregando(true)
+    setErroLoad(false)
+    Promise.all([api.getUsuarios(), api.getRegionais()])
+      .then(([u, r]) => { setUsuarios(u); setRegionais(r) })
+      .catch(() => setErroLoad(true))
+      .finally(() => setCarregando(false))
+  }
+
+  useEffect(() => { carregar() }, [])
+
+  async function abrirHistorico(u: Usuario) {
+    setLoadingHistorico(true)
+    setHistorico({ usuario: u, sessoes: [] })
+    const sessoes = await api.getSessoesUsuario(u.id).catch(() => [])
+    setHistorico({ usuario: u, sessoes })
+    setLoadingHistorico(false)
+  }
 
   function abrirNovo() {
     setForm(FORM_VAZIO); setErro(''); setModal('novo')
@@ -96,6 +138,21 @@ export default function UsuariosPage() {
     await api.atualizarUsuario(u.id, { senha: novaSenha })
     alert(`Senha de ${u.nome} redefinida. Ele será obrigado a trocar no próximo acesso.`)
   }
+
+  if (carregando) return (
+    <div className="p-8 flex items-center justify-center min-h-[60vh] text-gray-400 text-sm gap-2">
+      <RotateCcw size={16} className="animate-spin" /> Carregando...
+    </div>
+  )
+
+  if (erroLoad) return (
+    <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] gap-3">
+      <p className="text-gray-500 text-sm">Não foi possível carregar os usuários.</p>
+      <button onClick={carregar} className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">
+        <RotateCcw size={14} /> Tentar novamente
+      </button>
+    </div>
+  )
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
@@ -157,6 +214,13 @@ export default function UsuariosPage() {
                       ? <span className="text-blue-600">Todas</span>
                       : u.regionalIds.map(id => regionais.find(r => r.id === id)?.nome).filter(Boolean).join(', ')}
                   </p>
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                    <span>Último acesso: {formatDataHora(u.ultimoAcesso)}</span>
+                    <span className="flex items-center gap-1"><Clock size={10} /> {formatTempo(u.totalSegundosOnline ?? 0)}</span>
+                    <button onClick={() => abrirHistorico(u)} className="text-indigo-500 hover:text-indigo-700 flex items-center gap-1">
+                      <History size={10} /> histórico
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -168,7 +232,8 @@ export default function UsuariosPage() {
                   <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
                   <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Login</th>
                   <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Perfil</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Regionais</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Último acesso</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tempo online</th>
                   <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="px-5 py-3"></th>
                 </tr>
@@ -185,9 +250,16 @@ export default function UsuariosPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-gray-500 text-xs">
-                      {u.regionalIds.length === 0
-                        ? <span className="text-blue-600">Todas</span>
-                        : u.regionalIds.map(id => regionais.find(r => r.id === id)?.nome).filter(Boolean).join(', ')}
+                      {formatDataHora(u.ultimoAcesso)}
+                    </td>
+                    <td className="px-5 py-3 text-gray-500 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Clock size={11} className="text-gray-300" />
+                        {formatTempo(u.totalSegundosOnline ?? 0)}
+                        {(u.totalSessoes ?? 0) > 0 && (
+                          <span className="text-gray-300 ml-0.5">({u.totalSessoes}x)</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -199,6 +271,9 @@ export default function UsuariosPage() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1 justify-end">
+                        <button onClick={() => abrirHistorico(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Histórico de sessões">
+                          <History size={14} />
+                        </button>
                         <button onClick={() => abrirEditar(u)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Editar">
                           <Pencil size={14} />
                         </button>
@@ -302,6 +377,59 @@ export default function UsuariosPage() {
               <button onClick={excluir} className="flex items-center gap-2 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                 <Trash2 size={14} /> Excluir
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal histórico de sessões */}
+      {historico && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <History size={16} className="text-indigo-500" />
+                  Histórico — {historico.usuario.nome}
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Último acesso: {formatDataHora(historico.usuario.ultimoAcesso)} &nbsp;·&nbsp;
+                  Total online: {formatTempo(historico.usuario.totalSegundosOnline ?? 0)}
+                </p>
+              </div>
+              <button onClick={() => setHistorico(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-4">
+              {loadingHistorico ? (
+                <div className="flex items-center justify-center py-10 text-gray-400 text-sm gap-2">
+                  <RotateCcw size={14} className="animate-spin" /> Carregando...
+                </div>
+              ) : historico.sessoes.length === 0 ? (
+                <div className="text-center py-10 text-gray-400 text-sm">Nenhuma sessão registrada</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-gray-100">
+                      <th className="pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Início</th>
+                      <th className="pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Encerramento</th>
+                      <th className="pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Duração</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {historico.sessoes.map(s => (
+                      <tr key={s.id}>
+                        <td className="py-2.5 text-gray-700">{formatDataHora(s.iniciadaEm)}</td>
+                        <td className="py-2.5 text-gray-500">
+                          {s.encerradaEm
+                            ? formatDataHora(s.encerradaEm)
+                            : <span className="text-green-600 text-xs font-medium">Ativa</span>}
+                        </td>
+                        <td className="py-2.5 text-gray-500 text-right">{formatTempo(s.duracaoSeg ?? 0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

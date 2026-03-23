@@ -26,8 +26,12 @@ export default function Dashboard() {
   const [demandas, setDemandas] = useState<DemandaAberta[]>([])
   const [dataInicio, setDataInicio] = useState(DEFAULT_INI)
   const [dataFim, setDataFim]       = useState(DEFAULT_FIM)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState(false)
 
-  useEffect(() => {
+  function carregar() {
+    setCarregando(true)
+    setErro(false)
     Promise.all([
       api.getRegionais(),
       api.getUnidadesResumo(dataInicio, dataFim),
@@ -36,8 +40,11 @@ export default function Dashboard() {
       setRegionais(regs)
       setResumos(res)
       setDemandas(dem)
-    })
-  }, [dataInicio, dataFim])
+    }).catch(() => setErro(true))
+      .finally(() => setCarregando(false))
+  }
+
+  useEffect(() => { carregar() }, [dataInicio, dataFim])
 
   // Filtrar pela regional ativa
   const resumosFiltrados = regionalAtiva
@@ -54,6 +61,21 @@ export default function Dashboard() {
   const semVisita     = resumosFiltrados.filter(r => !r.ultimaVisita).length
 
   const isPeriodoDefault = dataInicio === DEFAULT_INI && dataFim === DEFAULT_FIM
+
+  if (carregando) return (
+    <div className="p-8 flex items-center justify-center min-h-[60vh] text-gray-400 text-sm gap-2">
+      <RotateCcw size={16} className="animate-spin" /> Carregando...
+    </div>
+  )
+
+  if (erro) return (
+    <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] gap-3">
+      <p className="text-gray-500 text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={carregar} className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">
+        <RotateCcw size={14} /> Tentar novamente
+      </button>
+    </div>
+  )
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
@@ -277,7 +299,6 @@ export default function Dashboard() {
                 </span>
                 <span className="flex-1 text-sm text-gray-800">{d.titulo}</span>
                 <span className="text-xs text-gray-400">{d.unidadeNome}</span>
-                <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{d.macrocaixaCodigo}</span>
               </div>
             ))}
           </div>

@@ -26,11 +26,43 @@ router.post('/login', async (req, res) => {
 
   const token = makeToken(user.id, user.login, user.perfil, regionalIds)
 
+  const now = new Date().toISOString()
+  await run('UPDATE usuarios SET ultimo_acesso = ? WHERE id = ?', [now, user.id])
+  await run('INSERT INTO usuario_sessoes (usuario_id, iniciada_em) VALUES (?, ?)', [user.id, now])
+
   res.json({
     token,
     trocarSenha: user.trocarSenha === 1 || user.trocarSenha === true,
     user: { id: user.id, nome: user.nome, login: user.login, perfil: user.perfil, regionalIds },
   })
+})
+
+router.post('/heartbeat', authMiddleware, async (req, res) => {
+  const now = new Date().toISOString()
+  await run(`
+    UPDATE usuario_sessoes SET encerrada_em = ?
+    WHERE id = (
+      SELECT id FROM usuario_sessoes
+      WHERE usuario_id = ? AND encerrada_em IS NULL
+      ORDER BY iniciada_em DESC LIMIT 1
+    )
+  `, [now, req.user!.userId])
+  res.json({ ok: true })
+})
+
+router.post('/logout', authMiddleware, async (req, res) => {
+  const now = new Date().toISOString()
+  await run(`
+    UPDATE usuario_sessoes
+    SET encerrada_em = ?,
+        duracao_seg = EXTRACT(EPOCH FROM (?::timestamp - iniciada_em::timestamp))::integer
+    WHERE id = (
+      SELECT id FROM usuario_sessoes
+      WHERE usuario_id = ? AND encerrada_em IS NULL
+      ORDER BY iniciada_em DESC LIMIT 1
+    )
+  `, [now, now, req.user!.userId])
+  res.json({ ok: true })
 })
 
 router.post('/trocar-senha', authMiddleware, async (req, res) => {
