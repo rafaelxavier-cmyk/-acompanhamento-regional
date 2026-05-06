@@ -1,7 +1,8 @@
 import type {
   Regional, Unidade, Macrocaixa, Visita, VisitaRecente,
   RegistroMacrocaixa, UltimoRegistro, UnidadeResumo,
-  Demanda, DemandaAberta, DemandaKanban
+  Demanda, DemandaAberta, DemandaKanban,
+  ChecklistSetor, RegistroChecklist, UltimoRegistroChecklist
 } from '../types'
 import type { AuthUser } from '../context/AuthContext'
 
@@ -75,6 +76,21 @@ export const api = {
 
   // Macrocaixas
   getMacrocaixas: () => req<Macrocaixa[]>('GET', '/macrocaixas'),
+
+  // Checklist
+  getChecklistSetores: () => req<ChecklistSetor[]>('GET', '/checklist/setores'),
+  getRegistrosChecklist: (visitaId: number) =>
+    req<RegistroChecklist[]>('GET', '/checklist/registros', undefined, { visitaId: String(visitaId) }),
+  upsertRegistroChecklist: (visitaId: number, setorId: number, data: { nota?: number | null; observacao?: string }) =>
+    req<RegistroChecklist>('POST', '/checklist/registros/upsert', { visitaId, setorId, ...data }),
+  getUltimoRegistroChecklist: (unidadeId: number, setorId: number) =>
+    req<UltimoRegistroChecklist | null>('GET', '/checklist/registros/ultimo', undefined, {
+      unidadeId: String(unidadeId), setorId: String(setorId),
+    }),
+  getDemandasByRegistroChecklist: (registroChecklistId: number) =>
+    req<Demanda[]>('GET', '/demandas', undefined, { registroChecklistId: String(registroChecklistId) }),
+  createDemandaChecklist: (registroChecklistId: number, data: { titulo: string; descricao?: string; prioridade?: string; responsavel?: string; prazo?: string }) =>
+    req<Demanda>('POST', '/demandas', { registroChecklistId, ...data }),
 
   // Visitas
   getVisitasByUnidade: (unidadeId: number) => req<Visita[]>('GET', '/visitas', undefined, { unidadeId: String(unidadeId) }),

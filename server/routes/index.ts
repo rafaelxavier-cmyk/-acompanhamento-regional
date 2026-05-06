@@ -9,6 +9,7 @@ import visitasRouter from './visitas.routes'
 import registrosRouter from './registros.routes'
 import demandasRouter from './demandas.routes'
 import iaRouter from './ia.routes'
+import checklistRouter from './checklist.routes'
 
 const router = Router()
 
@@ -20,6 +21,7 @@ router.use('/usuarios',    usuariosRouter)
 router.use('/regionais',   authMiddleware, regionaisRouter)
 router.use('/unidades',    authMiddleware, unidadesRouter)
 router.use('/macrocaixas', authMiddleware, macrocaixasRouter)
+router.use('/checklist',   authMiddleware, checklistRouter)
 router.use('/visitas',     authMiddleware, visitasRouter)
 router.use('/registros',   authMiddleware, registrosRouter)
 router.use('/demandas',    authMiddleware, demandasRouter)

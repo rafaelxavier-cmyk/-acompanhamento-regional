@@ -57,7 +57,6 @@ export default function Dashboard() {
   // Totais da regional ativa
   const totalVisitas  = resumosFiltrados.reduce((s, r) => s + Number(r.totalVisitas ?? 0), 0)
   const totalDemandas = demandasFiltradas.length
-  const totalCriticas = resumosFiltrados.reduce((s, r) => s + Number(r.macrocaixasCriticas ?? 0), 0)
   const semVisita     = resumosFiltrados.filter(r => !r.ultimaVisita).length
 
   const isPeriodoDefault = dataInicio === DEFAULT_INI && dataFim === DEFAULT_FIM
@@ -143,12 +142,17 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-              <TrendingUp size={16} className="text-red-600" />
+            <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center">
+              <TrendingUp size={16} className="text-brand-600" />
             </div>
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Macrocaixas críticas</span>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Score médio NPS</span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{totalCriticas}</p>
+          <p className="text-3xl font-bold text-gray-900">
+            {(() => {
+              const scores = resumosFiltrados.filter(r => r.scoreUltimaVisita != null).map(r => Number(r.scoreUltimaVisita))
+              return scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '—'
+            })()}
+          </p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -193,8 +197,7 @@ export default function Dashboard() {
                     <th className="px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Visitas</th>
                     <th className="px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Última visita</th>
                     <th className="px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Ações abertas</th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Crítico</th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Atenção</th>
+                    <th className="px-5 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">NPS</th>
                     <th className="px-5 py-2.5"></th>
                   </tr>
                 </thead>
@@ -246,25 +249,18 @@ export default function Dashboard() {
                           )}
                         </td>
 
-                        {/* Crítico */}
+                        {/* NPS */}
                         <td className="px-5 py-3 text-center">
-                          {Number(u.macrocaixasCriticas ?? 0) > 0 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700 font-bold text-xs">
-                              {Number(u.macrocaixasCriticas)}
-                            </span>
-                          ) : (
-                            <CheckCircle2 size={16} className="text-gray-200 mx-auto" />
-                          )}
-                        </td>
-
-                        {/* Atenção */}
-                        <td className="px-5 py-3 text-center">
-                          {Number(u.macrocaixasAtencao ?? 0) > 0 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-yellow-100 text-yellow-700 font-bold text-xs">
-                              {Number(u.macrocaixasAtencao)}
-                            </span>
-                          ) : (
-                            <CheckCircle2 size={16} className="text-gray-200 mx-auto" />
+                          {u.scoreUltimaVisita != null ? (() => {
+                            const s = Number(u.scoreUltimaVisita)
+                            const cls = s >= 90 ? 'bg-emerald-100 text-emerald-700' : s >= 75 ? 'bg-green-100 text-green-700' : s >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                            return (
+                              <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full font-bold text-xs ${cls}`}>
+                                {s.toFixed(0)}
+                              </span>
+                            )
+                          })() : (
+                            <span className="text-gray-300">—</span>
                           )}
                         </td>
 

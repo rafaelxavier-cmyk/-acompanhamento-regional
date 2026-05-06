@@ -128,6 +128,51 @@ export async function runMigrations(): Promise<void> {
   // Macrocaixas adicionadas após o seed inicial — idempotentes
   await run(`INSERT INTO macrocaixas (codigo, titulo, descricao, ordem) VALUES ('#11', 'Gestão de Pessoas', 'Gestão de colaboradores, contratações, desligamentos, afastamentos e clima organizacional', 11) ON CONFLICT (codigo) DO NOTHING`)
 
+  // ─── Checklist oficial de visita ──────────────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS checklist_setores (
+      id    SERIAL PRIMARY KEY,
+      nome  TEXT    NOT NULL,
+      ordem INTEGER NOT NULL UNIQUE,
+      peso  INTEGER NOT NULL
+    )
+  `)
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS registros_checklist (
+      id         SERIAL PRIMARY KEY,
+      visita_id  INTEGER NOT NULL REFERENCES visitas(id),
+      setor_id   INTEGER NOT NULL REFERENCES checklist_setores(id),
+      nota       INTEGER,
+      observacao TEXT,
+      created_at TEXT NOT NULL DEFAULT (to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS')),
+      updated_at TEXT,
+      UNIQUE (visita_id, setor_id)
+    )
+  `)
+
+  await run(`ALTER TABLE visitas ADD COLUMN IF NOT EXISTS score_final NUMERIC(5,2)`)
+  await run(`ALTER TABLE demandas ADD COLUMN IF NOT EXISTS registro_checklist_id INTEGER REFERENCES registros_checklist(id)`)
+
+  // Seed dos 10 setores (idempotente via ON CONFLICT (ordem))
+  const setores: [string, number, number][] = [
+    ['Entrada e Saída de Alunos',  1, 10],
+    ['Intervalo',                  2, 10],
+    ['Limpeza e Infraestrutura',   3, 15],
+    ['Salas de Aula',              4, 25],
+    ['Sala dos Professores',       5,  5],
+    ['Secretaria e Atendimento',   6, 10],
+    ['Comercial e Captação',       7, 10],
+    ['Gestão e Liderança',         8, 10],
+    ['Padrão Matriz Educação',     9,  3],
+    ['Segurança e Conformidade',  10,  2],
+  ]
+  for (const [nome, ordem, peso] of setores)
+    await run(
+      `INSERT INTO checklist_setores (nome, ordem, peso) VALUES (?, ?, ?) ON CONFLICT (ordem) DO NOTHING`,
+      [nome, ordem, peso]
+    )
+
   await runSeed()
 }
 

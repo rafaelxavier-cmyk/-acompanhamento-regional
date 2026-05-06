@@ -12,32 +12,21 @@ router.get('/resumo', async (req, res) => {
       u.id,
       u.nome,
       u.regional_id,
-      COUNT(DISTINCT v.id)::int                                     AS total_visitas,
-      MAX(v.data_visita)                                            AS ultima_visita,
+      COUNT(DISTINCT v.id)::int AS total_visitas,
+      MAX(v.data_visita)        AS ultima_visita,
       (SELECT COUNT(*)::int FROM demandas d
-         JOIN registros_macrocaixa r ON r.id = d.registro_id
-         JOIN visitas vv             ON vv.id = r.visita_id
-       WHERE vv.unidade_id = u.id AND d.status_demanda = 'aberta') AS demandas_abertas,
-      (SELECT COUNT(*)::int FROM registros_macrocaixa r
-         JOIN visitas vv ON vv.id = r.visita_id
-       WHERE vv.unidade_id = u.id
-         AND vv.id = (SELECT id FROM visitas
-                      WHERE unidade_id = u.id AND data_visita BETWEEN ? AND ?
-                      ORDER BY data_visita DESC LIMIT 1)
-         AND r.status = 'critico')                                  AS macrocaixas_criticas,
-      (SELECT COUNT(*)::int FROM registros_macrocaixa r
-         JOIN visitas vv ON vv.id = r.visita_id
-       WHERE vv.unidade_id = u.id
-         AND vv.id = (SELECT id FROM visitas
-                      WHERE unidade_id = u.id AND data_visita BETWEEN ? AND ?
-                      ORDER BY data_visita DESC LIMIT 1)
-         AND r.status = 'atencao')                                  AS macrocaixas_atencao
+       WHERE d.unidade_id = u.id AND d.status_demanda = 'aberta') AS demandas_abertas,
+      (SELECT score_final FROM visitas
+       WHERE unidade_id = u.id AND status = 'concluida'
+       ORDER BY data_visita DESC LIMIT 1) AS score_ultima_visita,
+      0 AS macrocaixas_criticas,
+      0 AS macrocaixas_atencao
     FROM unidades u
     LEFT JOIN visitas v ON v.unidade_id = u.id AND v.data_visita BETWEEN ? AND ?
     WHERE u.ativa = 1
     GROUP BY u.id
     ORDER BY u.nome
-  `, [ini, fim, ini, fim, ini, fim]))
+  `, [ini, fim]))
 })
 
 router.get('/', async (req, res) => {

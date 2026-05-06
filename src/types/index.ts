@@ -34,6 +34,31 @@ export interface Macrocaixa {
   ativa: boolean
 }
 
+export interface ChecklistSetor {
+  id: number
+  nome: string
+  ordem: number
+  peso: number
+}
+
+export interface RegistroChecklist {
+  id: number
+  visitaId: number
+  setorId: number
+  nota: number | null
+  observacao: string | null
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface UltimoRegistroChecklist {
+  id: number
+  nota: number | null
+  observacao: string | null
+  dataVisita: string
+  visitaId: number
+}
+
 export type StatusVisita = 'em_andamento' | 'concluida'
 
 export interface Visita {
@@ -43,6 +68,7 @@ export interface Visita {
   diretorNome: string | null
   status: StatusVisita
   observacaoGeral: string | null
+  scoreFinal: number | null
   createdAt: string
   updatedAt: string | null
 }
@@ -84,6 +110,7 @@ export interface UnidadeResumo {
   totalVisitas: number
   ultimaVisita: string | null
   demandasAbertas: number
+  scoreUltimaVisita: number | null
   macrocaixasCriticas: number
   macrocaixasAtencao: number
 }
@@ -93,7 +120,8 @@ export type StatusDemanda = 'aberta' | 'em_andamento' | 'concluida' | 'cancelada
 
 export interface Demanda {
   id: number
-  registroId: number
+  registroId: number | null
+  registroChecklistId: number | null
   titulo: string
   descricao: string | null
   prioridade: PrioridadeDemanda
@@ -127,6 +155,6 @@ export interface DemandaKanban {
   regionalId: number | null
   macrocaixaCodigo: string | null
   registroId: number | null
+  registroChecklistId: number | null
   createdAt: string
 }
-

@@ -8,16 +8,20 @@ router.get('/kanban', async (req, res) => {
   res.json(await query(`
     SELECT
       d.id, d.titulo, d.descricao, d.prioridade, d.responsavel, d.prazo,
-      d.status_demanda, d.registro_id, d.unidade_id, d.created_at,
-      COALESCE(uv.nome, ud.nome)             AS unidade_nome,
-      COALESCE(uv.regional_id, ud.regional_id) AS regional_id,
-      m.codigo  AS macrocaixa_codigo
+      d.status_demanda, d.registro_id, d.registro_checklist_id, d.unidade_id, d.created_at,
+      COALESCE(uv.nome, ud.nome, urc.nome)                         AS unidade_nome,
+      COALESCE(uv.regional_id, ud.regional_id, urc.regional_id)   AS regional_id,
+      COALESCE(m.codigo, cs.nome)                                  AS macrocaixa_codigo
     FROM demandas d
-    LEFT JOIN registros_macrocaixa rm ON rm.id = d.registro_id
-    LEFT JOIN visitas v               ON v.id  = rm.visita_id
-    LEFT JOIN unidades uv             ON uv.id = v.unidade_id
-    LEFT JOIN unidades ud             ON ud.id = d.unidade_id
-    LEFT JOIN macrocaixas m           ON m.id  = rm.macrocaixa_id
+    LEFT JOIN registros_macrocaixa rm  ON rm.id  = d.registro_id
+    LEFT JOIN visitas v                ON v.id   = rm.visita_id
+    LEFT JOIN unidades uv              ON uv.id  = v.unidade_id
+    LEFT JOIN unidades ud              ON ud.id  = d.unidade_id
+    LEFT JOIN macrocaixas m            ON m.id   = rm.macrocaixa_id
+    LEFT JOIN registros_checklist rc   ON rc.id  = d.registro_checklist_id
+    LEFT JOIN checklist_setores cs     ON cs.id  = rc.setor_id
+    LEFT JOIN visitas vc               ON vc.id  = rc.visita_id
+    LEFT JOIN unidades urc             ON urc.id = vc.unidade_id
     WHERE d.status_demanda != 'cancelada'
     ORDER BY
       CASE d.prioridade
@@ -34,16 +38,20 @@ router.get('/abertas', async (req, res) => {
     SELECT
       d.id, d.titulo, d.descricao, d.prioridade, d.responsavel, d.prazo,
       d.status_demanda, d.sync_status, d.created_at,
-      COALESCE(uv.nome, ud.nome)             AS unidade_nome,
-      COALESCE(uv.regional_id, ud.regional_id) AS regional_id,
-      m.titulo AS macrocaixa_titulo,
-      m.codigo AS macrocaixa_codigo
+      COALESCE(uv.nome, ud.nome, urc.nome)                       AS unidade_nome,
+      COALESCE(uv.regional_id, ud.regional_id, urc.regional_id) AS regional_id,
+      COALESCE(m.titulo, cs.nome) AS macrocaixa_titulo,
+      COALESCE(m.codigo, cs.nome) AS macrocaixa_codigo
     FROM demandas d
-    LEFT JOIN registros_macrocaixa rm ON rm.id = d.registro_id
-    LEFT JOIN visitas v               ON v.id  = rm.visita_id
-    LEFT JOIN unidades uv             ON uv.id = v.unidade_id
-    LEFT JOIN unidades ud             ON ud.id = d.unidade_id
-    LEFT JOIN macrocaixas m           ON m.id  = rm.macrocaixa_id
+    LEFT JOIN registros_macrocaixa rm  ON rm.id  = d.registro_id
+    LEFT JOIN visitas v                ON v.id   = rm.visita_id
+    LEFT JOIN unidades uv              ON uv.id  = v.unidade_id
+    LEFT JOIN unidades ud              ON ud.id  = d.unidade_id
+    LEFT JOIN macrocaixas m            ON m.id   = rm.macrocaixa_id
+    LEFT JOIN registros_checklist rc   ON rc.id  = d.registro_checklist_id
+    LEFT JOIN checklist_setores cs     ON cs.id  = rc.setor_id
+    LEFT JOIN visitas vc               ON vc.id  = rc.visita_id
+    LEFT JOIN unidades urc             ON urc.id = vc.unidade_id
     WHERE d.status_demanda = 'aberta'
     ORDER BY
       CASE d.prioridade
@@ -53,18 +61,41 @@ router.get('/abertas', async (req, res) => {
   `))
 })
 
-// Demandas de um registro específico (visita)
+// Demandas de um registro específico
 router.get('/', async (req, res) => {
-  const registroId = Number(req.query.registroId)
-  res.json(await query('SELECT * FROM demandas WHERE registro_id = ? ORDER BY created_at DESC', [registroId]))
+  const registroId          = req.query.registroId          ? Number(req.query.registroId)          : undefined
+  const registroChecklistId = req.query.registroChecklistId ? Number(req.query.registroChecklistId) : undefined
+
+  if (registroChecklistId) {
+    res.json(await query(
+      'SELECT * FROM demandas WHERE registro_checklist_id = ? ORDER BY created_at DESC',
+      [registroChecklistId]
+    ))
+  } else if (registroId) {
+    res.json(await query(
+      'SELECT * FROM demandas WHERE registro_id = ? ORDER BY created_at DESC',
+      [registroId]
+    ))
+  } else {
+    res.json([])
+  }
 })
 
-// Criar demanda (de visita OU manual via Kanban)
+// Criar demanda (de visita checklist, macrocaixa ou manual via Kanban)
 router.post('/', async (req, res) => {
-  const { registroId, unidadeId, titulo, descricao, prioridade, responsavel, prazo } = req.body
+  const { registroId, registroChecklistId, unidadeId, titulo, descricao, prioridade, responsavel, prazo } = req.body
 
-  // Resolve unidade_id: direto ou via registro→visita
   let resolvedUnidadeId: number | null = unidadeId ?? null
+
+  if (!resolvedUnidadeId && registroChecklistId) {
+    const row = await queryOne<{ unidade_id: number }>(
+      `SELECT v.unidade_id FROM registros_checklist rc
+       JOIN visitas v ON v.id = rc.visita_id WHERE rc.id = ?`,
+      [registroChecklistId]
+    )
+    resolvedUnidadeId = row?.unidade_id ?? null
+  }
+
   if (!resolvedUnidadeId && registroId) {
     const row = await queryOne<{ unidade_id: number }>(
       `SELECT v.unidade_id FROM registros_macrocaixa rm
@@ -75,10 +106,11 @@ router.post('/', async (req, res) => {
   }
 
   const id = await insert(
-    `INSERT INTO demandas (registro_id, unidade_id, titulo, descricao, prioridade, responsavel, prazo)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [registroId ?? null, resolvedUnidadeId, titulo,
-     descricao ?? null, prioridade ?? 'normal', responsavel ?? null, prazo ?? null]
+    `INSERT INTO demandas
+       (registro_id, registro_checklist_id, unidade_id, titulo, descricao, prioridade, responsavel, prazo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [registroId ?? null, registroChecklistId ?? null, resolvedUnidadeId,
+     titulo, descricao ?? null, prioridade ?? 'normal', responsavel ?? null, prazo ?? null]
   )
   res.json(await queryOne('SELECT * FROM demandas WHERE id = ?', [id]))
 })

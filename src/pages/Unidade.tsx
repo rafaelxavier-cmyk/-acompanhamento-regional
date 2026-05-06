@@ -132,16 +132,23 @@ export default function UnidadePage() {
 
                 {/* Conteúdo */}
                 <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4 group-hover:border-brand-300 group-hover:shadow-sm transition-all">
-                  <div className="flex items-start justify-between">
-                    <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800">{formatDateLong(v.dataVisita)}</p>
                       {v.diretorNome && (
                         <p className="text-sm text-gray-500 mt-0.5">{v.diretorNome}</p>
                       )}
                     </div>
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLOR[v.status]}`}>
-                      {v.status === 'em_andamento' ? 'Em andamento' : 'Concluída'}
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {v.scoreFinal != null && (() => {
+                        const s = Number(v.scoreFinal)
+                        const cls = s >= 90 ? 'bg-emerald-100 text-emerald-700' : s >= 75 ? 'bg-green-100 text-green-700' : s >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                        return <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${cls}`}>{s.toFixed(1)}</span>
+                      })()}
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLOR[v.status]}`}>
+                        {v.status === 'em_andamento' ? 'Em andamento' : 'Concluída'}
+                      </span>
+                    </div>
                   </div>
                   {v.observacaoGeral && (
                     <p className="text-sm text-gray-500 mt-2 line-clamp-2">{v.observacaoGeral}</p>
