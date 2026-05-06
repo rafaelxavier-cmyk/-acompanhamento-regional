@@ -68,9 +68,12 @@ router.patch('/:id', async (req, res) => {
       SELECT rc.nota, cs.peso
       FROM registros_checklist rc
       JOIN checklist_setores cs ON cs.id = rc.setor_id
-      WHERE rc.visita_id = ? AND rc.nota IS NOT NULL
+      WHERE rc.visita_id = ? AND rc.nota IS NOT NULL AND rc.nao_aplicavel = false
     `, [id])
-    const score = rows.reduce((sum, r) => sum + Number(r.nota) * Number(r.peso), 0) / 5
+    const pesoTotal = rows.reduce((sum, r) => sum + Number(r.peso), 0)
+    const score = pesoTotal > 0
+      ? rows.reduce((sum, r) => sum + Number(r.nota) * Number(r.peso), 0) * 20 / pesoTotal
+      : 0
     await run('UPDATE visitas SET status = ?, score_final = ?, updated_at = ? WHERE id = ?',
       [data.status, score.toFixed(2), now, id])
   } else if (data.status !== undefined) {

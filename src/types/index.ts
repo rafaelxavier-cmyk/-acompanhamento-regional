@@ -39,6 +39,7 @@ export interface ChecklistSetor {
   nome: string
   ordem: number
   peso: number
+  ativa?: boolean
 }
 
 export interface RegistroChecklist {
@@ -47,6 +48,7 @@ export interface RegistroChecklist {
   setorId: number
   nota: number | null
   observacao: string | null
+  naoAplicavel: boolean
   createdAt: string
   updatedAt: string | null
 }
@@ -55,6 +57,7 @@ export interface UltimoRegistroChecklist {
   id: number
   nota: number | null
   observacao: string | null
+  naoAplicavel: boolean
   dataVisita: string
   visitaId: number
 }

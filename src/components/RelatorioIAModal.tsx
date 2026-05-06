@@ -14,6 +14,8 @@ interface PlanoResult {
   unidadeNome: string
   dataUltimaVisita: string
   totalDemandas: number
+  scoreFinal?: number | null
+  setoresData?: { setorNome: string; nota: number | null; peso: number; naoAplicavel?: boolean }[]
 }
 
 function renderBold(text: string): React.ReactNode {
@@ -104,7 +106,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
   const [regionaisExpandidas, setRegionaisExpandidas] = useState<Set<number>>(new Set())
   const [filtroAberto, setFiltroAberto] = useState(false)
   const [todasUnidades, setTodasUnidades] = useState<Unidade[]>([])
-  const [resultadoPeriodo, setResultadoPeriodo] = useState<{ relatorio: string; totalVisitas: number; totalDemandas: number } | null>(null)
+  const [resultadoPeriodo, setResultadoPeriodo] = useState<{ relatorio: string; totalVisitas: number; totalDemandas: number; scoreMedia: number | null } | null>(null)
   const [textoPeriodo, setTextoPeriodo] = useState('')
   const [gerandoPeriodo, setGerandoPeriodo] = useState(false)
   const [erroPeriodo, setErroPeriodo] = useState<string | null>(null)
@@ -173,6 +175,55 @@ export default function RelatorioIAModal({ onClose }: Props) {
     if (!resultado) return
     const data = formatDate(resultado.dataUltimaVisita)
     const logoPdfUrl = `${window.location.origin}${logoUrl}`
+
+    const getClassif = (s: number) => {
+      if (s >= 90) return { texto: 'Excelência', bg: '#d1fae5', cor: '#065f46' }
+      if (s >= 75) return { texto: 'Bom padrão', bg: '#dcfce7', cor: '#166534' }
+      if (s >= 60) return { texto: 'Atenção', bg: '#fef3c7', cor: '#92400e' }
+      return { texto: 'Crítico', bg: '#fee2e2', cor: '#991b1b' }
+    }
+    const getNotaCor = (n: number | null) => {
+      if (n === null) return { bg: '#f3f4f6', cor: '#9ca3af' }
+      if (n <= 1) return { bg: '#fee2e2', cor: '#dc2626' }
+      if (n <= 3) return { bg: '#fef3c7', cor: '#92400e' }
+      return { bg: '#dcfce7', cor: '#166534' }
+    }
+
+    let scorecardHtml = ''
+    if (resultado.scoreFinal != null && resultado.setoresData?.length) {
+      const classif = getClassif(resultado.scoreFinal)
+      const rows = resultado.setoresData.map(s => {
+        const isNA = s.naoAplicavel === true
+        const nc = isNA ? { bg: '#f3f4f6', cor: '#9ca3af' } : getNotaCor(s.nota)
+        const notaLabel = isNA ? 'N/A' : s.nota !== null ? String(s.nota) : '—'
+        const opacity = isNA ? 'opacity:0.5;' : ''
+        return `<tr style="border-bottom:1px solid #f3f4f6;${opacity}">
+          <td style="padding:3px 0;color:#374151;${isNA ? 'text-decoration:line-through;color:#9ca3af;' : ''}">${esc(s.setorNome)}</td>
+          <td style="padding:3px 8px;text-align:center;"><span style="display:inline-block;background:${nc.bg};color:${nc.cor};border-radius:4px;padding:1px 7px;font-weight:700;font-size:11px;">${notaLabel}</span></td>
+          <td style="padding:3px 0;text-align:right;color:#6b7280;">${isNA ? '—' : s.peso + '%'}</td>
+        </tr>`
+      }).join('')
+      scorecardHtml = `
+<div style="background:#f0fdf4;border:2px solid #237f53;border-radius:10px;padding:18px 20px;margin-bottom:24px;display:flex;gap:24px;align-items:flex-start;">
+  <div style="text-align:center;min-width:90px;padding-right:20px;border-right:1px solid #a7f3d0;">
+    <div style="font-size:48px;font-weight:900;color:#16432e;line-height:1;">${resultado.scoreFinal.toFixed(1)}</div>
+    <div style="font-size:10px;color:#4a7c59;text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">Score NPS</div>
+    <div style="margin-top:8px;display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${classif.bg};color:${classif.cor};">${classif.texto}</div>
+  </div>
+  <div style="flex:1;">
+    <div style="font-size:10px;font-weight:700;color:#237f53;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Avaliação por setor</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead><tr style="border-bottom:1px solid #d1fae5;">
+        <th style="text-align:left;padding:3px 0;color:#6b7280;font-weight:600;">Setor</th>
+        <th style="text-align:center;padding:3px 8px;color:#6b7280;font-weight:600;width:60px;">Nota</th>
+        <th style="text-align:right;padding:3px 0;color:#6b7280;font-weight:600;width:40px;">Peso</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+</div>`
+    }
+
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -217,6 +268,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
       <span class="${resultado.totalDemandas > 0 ? 'demandas' : ''}">${resultado.totalDemandas} demanda(s) aberta(s)</span>
     </div>
   </header>
+  ${scorecardHtml}
   ${markdownParaHtml(textoEditado)}
   <footer>
     <span>Matriz Educação — Acompanhamento Regional</span>
@@ -259,6 +311,9 @@ export default function RelatorioIAModal({ onClose }: Props) {
   function exportarPDFPeriodo() {
     if (!resultadoPeriodo) return
     const logoPdfUrl = `${window.location.origin}${logoUrl}`
+    const scoreChip = resultadoPeriodo.scoreMedia != null
+      ? `<span style="background:#d1fae5;color:#065f46;font-weight:600;">Score médio NPS: ${resultadoPeriodo.scoreMedia.toFixed(1)}</span>`
+      : ''
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -272,7 +327,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
     .header-top img { height: 80px; }
     .header-top .data-gerado { font-size: 11px; color: #718096; }
     header h1 { font-size: 20px; color: #16432e; margin-bottom: 4px; }
-    header .meta { color: #718096; font-size: 12px; display: flex; gap: 16px; margin-top: 8px; }
+    header .meta { color: #718096; font-size: 12px; display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
     header .meta span { background: #edf2f7; padding: 2px 10px; border-radius: 20px; }
     h1 { font-size: 18px; color: #16432e; margin: 20px 0 8px; }
     h2 { font-size: 15px; color: #237f53; margin: 18px 0 6px; border-left: 3px solid #237f53; padding-left: 8px; }
@@ -298,6 +353,7 @@ export default function RelatorioIAModal({ onClose }: Props) {
       <span>Período: ${dataInicio} a ${dataFim}</span>
       <span>${resultadoPeriodo.totalVisitas} visita(s)</span>
       <span>${resultadoPeriodo.totalDemandas} demanda(s) aberta(s)</span>
+      ${scoreChip}
     </div>
   </header>
   ${markdownParaHtml(textoPeriodo)}
@@ -517,6 +573,11 @@ export default function RelatorioIAModal({ onClose }: Props) {
                 <div>
                   <div className="flex gap-3 mb-4 text-xs text-gray-500 flex-wrap">
                     <span className="bg-gray-100 px-3 py-1 rounded-full">{resultadoPeriodo.totalVisitas} visita(s) no período</span>
+                    {resultadoPeriodo.scoreMedia != null && (() => {
+                      const s = resultadoPeriodo.scoreMedia!
+                      const cls = s >= 90 ? 'bg-emerald-50 text-emerald-700' : s >= 75 ? 'bg-green-50 text-green-700' : s >= 60 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'
+                      return <span className={`px-3 py-1 rounded-full font-bold ${cls}`}>Score médio: {s.toFixed(1)}</span>
+                    })()}
                     <span className={`px-3 py-1 rounded-full font-medium ${resultadoPeriodo.totalDemandas > 0 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
                       {resultadoPeriodo.totalDemandas} demanda(s) aberta(s)
                     </span>
@@ -655,6 +716,12 @@ export default function RelatorioIAModal({ onClose }: Props) {
                   <span className="bg-gray-100 px-3 py-1 rounded-full">
                     Última visita: <strong>{formatDate(resultado.dataUltimaVisita)}</strong>
                   </span>
+                  {resultado.scoreFinal != null && (() => {
+                    const s = resultado.scoreFinal!
+                    const cls = s >= 90 ? 'bg-emerald-50 text-emerald-700' : s >= 75 ? 'bg-green-50 text-green-700' : s >= 60 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'
+                    const label = s >= 90 ? 'Excelência' : s >= 75 ? 'Bom padrão' : s >= 60 ? 'Atenção' : 'Crítico'
+                    return <span className={`px-3 py-1 rounded-full font-bold ${cls}`}>NPS {s.toFixed(1)} — {label}</span>
+                  })()}
                   <span className={`px-3 py-1 rounded-full font-medium ${resultado.totalDemandas > 0 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
                     {resultado.totalDemandas} demanda(s) aberta(s)
                   </span>

@@ -23,9 +23,9 @@ async function coletarContextoVisita(unidadeId: number, visitaId?: number) {
   if (!ultimaVisita) return null
 
   const registrosChecklist = await query<{
-    nota: number | null; observacao: string | null; setorNome: string; peso: number; ordem: number
+    nota: number | null; observacao: string | null; setorNome: string; peso: number; ordem: number; naoAplicavel: boolean
   }>(
-    `SELECT rc.nota, rc.observacao, cs.nome AS setor_nome, cs.peso, cs.ordem
+    `SELECT rc.nota, rc.observacao, rc.nao_aplicavel, cs.nome AS setor_nome, cs.peso, cs.ordem
      FROM registros_checklist rc
      JOIN checklist_setores cs ON cs.id = rc.setor_id
      WHERE rc.visita_id = ?
@@ -61,7 +61,7 @@ function montarPrompt(ctx: NonNullable<Awaited<ReturnType<typeof coletarContexto
     : ''
 
   const avaliadosTexto = registrosChecklist
-    .filter(r => r.nota !== null)
+    .filter(r => !r.naoAplicavel && r.nota !== null)
     .map(r => {
       const linhas = [`**${r.setorNome}** (peso ${r.peso}%) — ${notaLabel(r.nota)}`]
       if (r.observacao) linhas.push(`  Obs.: ${r.observacao}`)
@@ -69,8 +69,12 @@ function montarPrompt(ctx: NonNullable<Awaited<ReturnType<typeof coletarContexto
     })
     .join('\n')
 
+  const naAplicaveis = registrosChecklist
+    .filter(r => r.naoAplicavel)
+    .map(r => r.setorNome)
+
   const naoAvaliados = registrosChecklist
-    .filter(r => r.nota === null)
+    .filter(r => !r.naoAplicavel && r.nota === null)
     .map(r => r.setorNome)
 
   const demandasTexto = demandas.length
@@ -89,7 +93,8 @@ ${ultimaVisita.observacaoGeral ? `**Observação geral:** ${ultimaVisita.observa
 ## Avaliação por setor (checklist oficial)
 
 ${avaliadosTexto || 'Nenhum setor avaliado.'}
-${naoAvaliados.length ? `\nSetores não avaliados: ${naoAvaliados.join(', ')}` : ''}
+${naAplicaveis.length ? `\nSetores N/A (excluídos da pontuação): ${naAplicaveis.join(', ')}` : ''}
+${naoAvaliados.length ? `Setores não avaliados: ${naoAvaliados.join(', ')}` : ''}
 
 ## Demandas abertas
 
@@ -252,6 +257,8 @@ router.post('/plano/:unidadeId', async (req, res) => {
       unidadeNome: ctx.unidade?.nome,
       dataUltimaVisita: ctx.ultimaVisita.dataVisita,
       totalDemandas: ctx.demandas.length,
+      scoreFinal: ctx.ultimaVisita.scoreFinal != null ? Number(ctx.ultimaVisita.scoreFinal) : null,
+      setoresData: ctx.registrosChecklist.map(r => ({ setorNome: r.setorNome, nota: r.nota ?? null, peso: r.peso, naoAplicavel: r.naoAplicavel ?? false })),
     })
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Erro interno' })
@@ -289,12 +296,15 @@ router.post('/relatorio-periodo', async (req, res) => {
     }
 
     const data = await response.json() as { choices: { message: { content: string } }[] }
+    const scoresArr = ctx.visitas.filter(v => v.scoreFinal != null).map(v => Number(v.scoreFinal))
+    const scoreMedia = scoresArr.length ? scoresArr.reduce((a, b) => a + b, 0) / scoresArr.length : null
     res.json({
       relatorio: data.choices[0].message.content,
       totalVisitas: ctx.visitas.length,
       totalDemandas: ctx.demandas.length,
       dataInicio,
       dataFim,
+      scoreMedia,
     })
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Erro interno' })

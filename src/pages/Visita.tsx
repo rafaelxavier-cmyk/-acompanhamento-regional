@@ -79,11 +79,17 @@ const NOTA_DOT: Record<number, string> = {
 }
 
 function calcScore(setores: ChecklistSetor[], registros: RegistroChecklist[]): number {
-  return setores.reduce((sum, s) => {
+  const evaluated = setores.filter(s => {
     const reg = registros.find(r => r.setorId === s.id)
-    if (!reg || reg.nota === null || reg.nota === undefined) return sum
-    return sum + (reg.nota * s.peso)
-  }, 0) / 5
+    return reg && !reg.naoAplicavel && reg.nota !== null && reg.nota !== undefined
+  })
+  if (!evaluated.length) return 0
+  const pesoTotal = evaluated.reduce((sum, s) => sum + s.peso, 0)
+  if (!pesoTotal) return 0
+  return evaluated.reduce((sum, s) => {
+    const reg = registros.find(r => r.setorId === s.id)!
+    return sum + reg.nota! * s.peso
+  }, 0) * 20 / pesoTotal
 }
 
 function getClassificacao(score: number) {
@@ -110,7 +116,7 @@ interface SetorBlockProps {
   unidade: Unidade
   registro: RegistroChecklist | undefined
   ultimoRegistro: UltimoRegistroChecklist | undefined
-  onUpdate: (setorId: number, data: { nota?: number | null; observacao?: string }) => void
+  onUpdate: (setorId: number, data: { nota?: number | null; observacao?: string; naoAplicavel?: boolean }) => void
 }
 
 function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate }: SetorBlockProps) {
@@ -119,6 +125,7 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
   const [modalDemanda, setModalDemanda] = useState(false)
 
   const nota = registro?.nota ?? null
+  const naoAplicavel = registro?.naoAplicavel ?? false
 
   useEffect(() => {
     if (open && registro) {
@@ -152,10 +159,12 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
     setDemandas(prev => prev.filter(d => d.id !== id))
   }
 
-  const dotClass = nota !== null ? NOTA_DOT[nota] : 'bg-gray-300'
+  const dotClass = naoAplicavel
+    ? 'bg-gray-200 ring-2 ring-gray-200 ring-offset-1'
+    : nota !== null ? NOTA_DOT[nota] : 'bg-gray-300'
 
   return (
-    <div className={cn('border rounded-xl overflow-hidden', open ? 'border-brand-300' : 'border-gray-200')}>
+    <div className={cn('border rounded-xl overflow-hidden', open ? 'border-brand-300' : 'border-gray-200', naoAplicavel && 'opacity-60')}>
       {/* Header */}
       <div
         className={cn('flex items-center gap-3 px-5 py-3.5 cursor-pointer select-none transition-colors',
@@ -164,9 +173,14 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
         onClick={() => setOpen(o => !o)}
       >
         <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotClass}`} />
-        <span className="flex-1 font-medium text-gray-800 text-sm">{setor.nome}</span>
+        <span className={cn('flex-1 font-medium text-sm', naoAplicavel ? 'text-gray-400 line-through' : 'text-gray-800')}>
+          {setor.nome}
+        </span>
+        {naoAplicavel && (
+          <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">N/A</span>
+        )}
 
-        {/* Botões nota 0–5 */}
+        {/* Botões nota 0–5 + N/A */}
         <div
           onClick={e => e.stopPropagation()}
           className="flex gap-1 items-center flex-shrink-0"
@@ -174,19 +188,33 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
           {([0, 1, 2, 3, 4, 5] as const).map(n => (
             <button
               key={n}
-              disabled={visita.status === 'concluida'}
+              disabled={visita.status === 'concluida' || naoAplicavel}
               title={`${n} — ${NOTA_LABELS[n]}`}
-              onClick={() => onUpdate(setor.id, { nota: nota === n ? null : n })}
+              onClick={() => onUpdate(setor.id, { nota: nota === n ? null : n, naoAplicavel: false })}
               className={cn(
                 'w-7 h-7 rounded text-xs font-bold border transition-colors',
-                nota === n
+                nota === n && !naoAplicavel
                   ? NOTA_ACTIVE[n]
-                  : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed'
+                  : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40'
               )}
             >
               {n}
             </button>
           ))}
+          <div className="w-px h-4 bg-gray-200 mx-0.5" />
+          <button
+            disabled={visita.status === 'concluida'}
+            title="Não aplicável — exclui da pontuação"
+            onClick={() => onUpdate(setor.id, naoAplicavel ? { naoAplicavel: false } : { nota: null, naoAplicavel: true })}
+            className={cn(
+              'px-1.5 h-7 rounded text-[10px] font-bold border transition-colors',
+              naoAplicavel
+                ? 'bg-gray-500 text-white border-gray-500'
+                : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed'
+            )}
+          >
+            N/A
+          </button>
         </div>
 
         <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
@@ -392,7 +420,7 @@ export default function VisitaPage() {
     })
   }, [id])
 
-  const handleUpdate = useCallback(async (setorId: number, data: { nota?: number | null; observacao?: string }) => {
+  const handleUpdate = useCallback(async (setorId: number, data: { nota?: number | null; observacao?: string; naoAplicavel?: boolean }) => {
     if (!visita) return
     const reg = await api.upsertRegistroChecklist(visita.id, setorId, data)
     setRegistros(prev => {
@@ -416,7 +444,9 @@ export default function VisitaPage() {
   }
 
   const score = calcScore(setores, registros)
-  const avaliados = registros.filter(r => r.nota !== null).length
+  const naAplicaveisCount = registros.filter(r => r.naoAplicavel).length
+  const avaliados = registros.filter(r => r.nota !== null && !r.naoAplicavel).length
+  const tratados = avaliados + naAplicaveisCount
   const classificacao = getClassificacao(avaliados > 0 ? score : 0)
 
   if (!visita || !unidade) return <div className="p-8 text-gray-400">Carregando...</div>
@@ -481,7 +511,7 @@ export default function VisitaPage() {
               </span>
             )}
             <p className="text-xs text-gray-400 mt-3">
-              {avaliados} de {setores.length} setores avaliados
+              {avaliados} avaliados{naAplicaveisCount > 0 ? `, ${naAplicaveisCount} N/A` : ''} de {setores.length}
             </p>
           </div>
 
@@ -490,22 +520,28 @@ export default function VisitaPage() {
             {setores.map(s => {
               const reg = registros.find(r => r.setorId === s.id)
               const n = reg?.nota ?? null
+              const na = reg?.naoAplicavel ?? false
               return (
-                <div key={s.id} className="flex items-center gap-2 text-xs">
+                <div key={s.id} className={cn('flex items-center gap-2 text-xs', na && 'opacity-40')}>
                   <span className="text-gray-500 truncate w-36 flex-shrink-0 text-right">{s.nome}</span>
                   <div className="flex-1 h-1.5 bg-white/50 rounded-full overflow-hidden">
-                    <div
-                      className={cn('h-full rounded-full transition-all duration-300',
-                        n === null ? '' : n <= 1 ? 'bg-red-400' : n <= 3 ? 'bg-yellow-400' : 'bg-green-500'
-                      )}
-                      style={{ width: `${n !== null ? (n / 5) * 100 : 0}%` }}
-                    />
+                    {na ? (
+                      <div className="h-full w-full bg-gray-300/50 rounded-full" style={{backgroundImage:'repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,0.1) 3px,rgba(0,0,0,0.1) 6px)'}} />
+                    ) : (
+                      <div
+                        className={cn('h-full rounded-full transition-all duration-300',
+                          n === null ? '' : n <= 1 ? 'bg-red-400' : n <= 3 ? 'bg-yellow-400' : 'bg-green-500'
+                        )}
+                        style={{ width: `${n !== null ? (n / 5) * 100 : 0}%` }}
+                      />
+                    )}
                   </div>
                   <span className={cn('w-5 text-center font-bold flex-shrink-0 tabular-nums',
+                    na ? 'text-gray-400' :
                     n === null ? 'text-gray-300' :
                     n <= 1 ? 'text-red-600' : n <= 3 ? 'text-yellow-600' : 'text-green-600'
                   )}>
-                    {n !== null ? n : '—'}
+                    {na ? 'N/A' : n !== null ? n : '—'}
                   </span>
                   <span className="text-gray-300 w-6 flex-shrink-0 text-right">{s.peso}%</span>
                 </div>
@@ -518,12 +554,12 @@ export default function VisitaPage() {
         <div className="mt-4 pt-3 border-t border-white/40">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
             <span>Progresso do checklist</span>
-            <span className="font-medium">{setores.length > 0 ? Math.round((avaliados / setores.length) * 100) : 0}%</span>
+            <span className="font-medium">{setores.length > 0 ? Math.round((tratados / setores.length) * 100) : 0}%</span>
           </div>
           <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
             <div
               className={cn('h-full rounded-full transition-all duration-300', classificacao.bar)}
-              style={{ width: `${setores.length > 0 ? (avaliados / setores.length) * 100 : 0}%` }}
+              style={{ width: `${setores.length > 0 ? (tratados / setores.length) * 100 : 0}%` }}
             />
           </div>
         </div>

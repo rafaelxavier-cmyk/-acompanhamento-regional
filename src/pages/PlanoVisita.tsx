@@ -10,6 +10,7 @@ interface PlanoResult {
   unidadeNome: string
   dataUltimaVisita: string
   totalDemandas: number
+  scoreFinal?: number | null
 }
 
 // Renderiza markdown simples (bold, listas, headers)
@@ -230,11 +231,17 @@ export default function PlanoVisitaPage() {
       {resultado && !gerando && (
         <div>
           {/* Meta info */}
-          <div className="flex gap-4 mb-6 text-xs text-gray-500">
+          <div className="flex gap-4 mb-6 text-xs text-gray-500 flex-wrap">
             <span className="bg-gray-100 px-3 py-1 rounded-full">
               Última visita: {formatDate(resultado.dataUltimaVisita)}
             </span>
-            <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full">
+            {resultado.scoreFinal != null && (() => {
+              const s = resultado.scoreFinal!
+              const cls = s >= 90 ? 'bg-emerald-50 text-emerald-700' : s >= 75 ? 'bg-green-50 text-green-700' : s >= 60 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'
+              const label = s >= 90 ? 'Excelência' : s >= 75 ? 'Bom padrão' : s >= 60 ? 'Atenção' : 'Crítico'
+              return <span className={`px-3 py-1 rounded-full font-bold ${cls}`}>NPS {s.toFixed(1)} — {label}</span>
+            })()}
+            <span className={`px-3 py-1 rounded-full font-medium ${resultado.totalDemandas > 0 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
               {resultado.totalDemandas} demanda(s) aberta(s)
             </span>
           </div>

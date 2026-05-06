@@ -79,9 +79,15 @@ export const api = {
 
   // Checklist
   getChecklistSetores: () => req<ChecklistSetor[]>('GET', '/checklist/setores'),
+  getAllChecklistSetores: () => req<ChecklistSetor[]>('GET', '/checklist/setores', undefined, { all: '1' }),
+  createChecklistSetor: (data: { nome: string; peso: number }) =>
+    req<ChecklistSetor>('POST', '/checklist/setores', data),
+  updateChecklistSetor: (id: number, data: { nome?: string; peso?: number; ativa?: boolean }) =>
+    req<ChecklistSetor>('PATCH', `/checklist/setores/${id}`, data),
+  deleteChecklistSetor: (id: number) => req<void>('DELETE', `/checklist/setores/${id}`),
   getRegistrosChecklist: (visitaId: number) =>
     req<RegistroChecklist[]>('GET', '/checklist/registros', undefined, { visitaId: String(visitaId) }),
-  upsertRegistroChecklist: (visitaId: number, setorId: number, data: { nota?: number | null; observacao?: string }) =>
+  upsertRegistroChecklist: (visitaId: number, setorId: number, data: { nota?: number | null; observacao?: string; naoAplicavel?: boolean }) =>
     req<RegistroChecklist>('POST', '/checklist/registros/upsert', { visitaId, setorId, ...data }),
   getUltimoRegistroChecklist: (unidadeId: number, setorId: number) =>
     req<UltimoRegistroChecklist | null>('GET', '/checklist/registros/ultimo', undefined, {
@@ -123,9 +129,9 @@ export const api = {
   // IA
   iaGetConfig: () => req<Record<string, string>>('GET', '/ia/config'),
   iaSaveApiKey: (apiKey: string) => req<{ ok: boolean }>('POST', '/ia/config', { apiKey }),
-  iaGerarPlano: (unidadeId: number, visitaId?: number) => req<{ plano: string; unidadeNome: string; dataUltimaVisita: string; totalDemandas: number }>('POST', `/ia/plano/${unidadeId}`, visitaId ? { visitaId } : {}),
+  iaGerarPlano: (unidadeId: number, visitaId?: number) => req<{ plano: string; unidadeNome: string; dataUltimaVisita: string; totalDemandas: number; scoreFinal: number | null; setoresData: { setorNome: string; nota: number | null; peso: number }[] }>('POST', `/ia/plano/${unidadeId}`, visitaId ? { visitaId } : {}),
   iaGerarRelatorioPeriodo: (dataInicio: string, dataFim: string, unidadeIds?: number[]) =>
-    req<{ relatorio: string; totalVisitas: number; totalDemandas: number; dataInicio: string; dataFim: string }>(
+    req<{ relatorio: string; totalVisitas: number; totalDemandas: number; dataInicio: string; dataFim: string; scoreMedia: number | null }>(
       'POST', '/ia/relatorio-periodo', { dataInicio, dataFim, unidadeIds }
     ),
 }

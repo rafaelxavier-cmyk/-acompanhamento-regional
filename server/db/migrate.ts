@@ -153,6 +153,8 @@ export async function runMigrations(): Promise<void> {
 
   await run(`ALTER TABLE visitas ADD COLUMN IF NOT EXISTS score_final NUMERIC(5,2)`)
   await run(`ALTER TABLE demandas ADD COLUMN IF NOT EXISTS registro_checklist_id INTEGER REFERENCES registros_checklist(id)`)
+  await run(`ALTER TABLE registros_checklist ADD COLUMN IF NOT EXISTS nao_aplicavel BOOLEAN NOT NULL DEFAULT false`)
+  await run(`ALTER TABLE checklist_setores ADD COLUMN IF NOT EXISTS ativa BOOLEAN NOT NULL DEFAULT true`)
 
   // Seed dos 10 setores (idempotente via ON CONFLICT (ordem))
   const setores: [string, number, number][] = [
