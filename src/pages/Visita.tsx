@@ -165,62 +165,62 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
 
   return (
     <div className={cn('border rounded-xl overflow-hidden', open ? 'border-brand-300' : 'border-gray-200', naoAplicavel && 'opacity-60')}>
-      {/* Header — dois níveis para caber bem no mobile */}
+      {/* Linha 1: identificação — clicável para abrir/fechar */}
       <div
-        className={cn('cursor-pointer select-none transition-colors', open ? 'bg-brand-50' : 'bg-white hover:bg-gray-50')}
+        className={cn('cursor-pointer select-none transition-colors flex items-center gap-2.5 px-4 pt-3 pb-2', open ? 'bg-brand-50' : 'bg-white hover:bg-gray-50')}
         onClick={() => setOpen(o => !o)}
       >
-        {/* Linha 1: identificação */}
-        <div className="flex items-center gap-2.5 px-4 pt-3 pb-1">
-          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotClass}`} />
-          <span className={cn('flex-1 font-medium text-sm min-w-0 truncate', naoAplicavel ? 'text-gray-400 line-through' : 'text-gray-800')}>
-            {setor.nome}
-          </span>
-          {naoAplicavel && (
-            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">N/A</span>
-          )}
-          <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
-            {setor.peso}%
-          </span>
-          <ChevronDown size={16} className={cn('text-gray-400 transition-transform flex-shrink-0', open && 'rotate-180')} />
-        </div>
+        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotClass}`} />
+        <span className={cn('flex-1 font-medium text-sm min-w-0 truncate', naoAplicavel ? 'text-gray-400 line-through' : 'text-gray-800')}>
+          {setor.nome}
+        </span>
+        {naoAplicavel && (
+          <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">N/A</span>
+        )}
+        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+          {setor.peso}%
+        </span>
+        <ChevronDown size={16} className={cn('text-gray-400 transition-transform flex-shrink-0', open && 'rotate-180')} />
+      </div>
 
-        {/* Linha 2: botões de nota */}
-        <div
-          className="flex gap-1 items-center px-4 pb-3 pl-7 flex-wrap"
-          onClick={e => e.stopPropagation()}
-        >
-          {([0, 1, 2, 3, 4, 5] as const).map(n => (
-            <button
-              key={n}
-              disabled={visita.status === 'concluida' || naoAplicavel}
-              title={`${n} — ${NOTA_LABELS[n]}`}
-              onClick={() => onUpdate(setor.id, { nota: nota === n ? null : n, naoAplicavel: false })}
-              className={cn(
-                'w-9 h-8 rounded-lg text-sm font-bold border transition-colors flex-shrink-0',
-                nota === n && !naoAplicavel
-                  ? NOTA_ACTIVE[n]
-                  : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40'
-              )}
-            >
-              {n}
-            </button>
-          ))}
-          <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
+      {/* Linha 2: botões de nota — fora da área de toggle */}
+      <div className={cn('flex gap-1 items-center px-4 pb-3 pl-7 flex-wrap', open ? 'bg-brand-50' : 'bg-white')}>
+        {([0, 1, 2, 3, 4, 5] as const).map(n => (
           <button
-            disabled={visita.status === 'concluida'}
-            title="Não aplicável — exclui da pontuação"
-            onClick={() => onUpdate(setor.id, naoAplicavel ? { naoAplicavel: false } : { nota: null, naoAplicavel: true })}
+            key={n}
+            type="button"
+            disabled={visita.status === 'concluida' || naoAplicavel}
+            title={`${n} — ${NOTA_LABELS[n]}`}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onUpdate(setor.id, { nota: nota === n ? null : n, naoAplicavel: false }) }}
+            style={{ touchAction: 'manipulation' }}
             className={cn(
-              'px-2.5 h-8 rounded-lg text-xs font-bold border transition-colors flex-shrink-0',
-              naoAplicavel
-                ? 'bg-gray-500 text-white border-gray-500'
-                : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed'
+              'w-9 h-8 rounded-lg text-sm font-bold border transition-colors flex-shrink-0',
+              nota === n && !naoAplicavel
+                ? NOTA_ACTIVE[n]
+                : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40'
             )}
           >
-            N/A
+            {n}
           </button>
-        </div>
+        ))}
+        <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
+        <button
+          type="button"
+          disabled={visita.status === 'concluida'}
+          title="Não aplicável — exclui da pontuação"
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onUpdate(setor.id, naoAplicavel ? { naoAplicavel: false } : { nota: null, naoAplicavel: true }) }}
+          style={{ touchAction: 'manipulation' }}
+          className={cn(
+            'px-2.5 h-8 rounded-lg text-xs font-bold border transition-colors flex-shrink-0',
+            naoAplicavel
+              ? 'bg-gray-500 text-white border-gray-500'
+              : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed'
+          )}
+        >
+          N/A
+        </button>
       </div>
 
       {/* Corpo expandido */}
@@ -425,6 +425,23 @@ export default function VisitaPage() {
 
   const handleUpdate = useCallback(async (setorId: number, data: { nota?: number | null; observacao?: string; naoAplicavel?: boolean }) => {
     if (!visita) return
+    // Optimistic: marca imediatamente sem esperar o servidor
+    setRegistros(prev => {
+      const now = new Date().toISOString()
+      const idx = prev.findIndex(r => r.setorId === setorId)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = { ...next[idx], ...data, updatedAt: now }
+        return next
+      }
+      return [...prev, {
+        id: 0, visitaId: visita.id, setorId,
+        nota: null, observacao: null, naoAplicavel: false,
+        createdAt: now, updatedAt: now,
+        ...data,
+      }]
+    })
+    // Reconcilia com o servidor
     const reg = await api.upsertRegistroChecklist(visita.id, setorId, data)
     setRegistros(prev => {
       const idx = prev.findIndex(r => r.setorId === setorId)
