@@ -27,12 +27,16 @@ router.post('/setores', adminOnly, async (req, res) => {
 
 router.patch('/setores/:id', adminOnly, async (req, res) => {
   const id = Number(req.params.id)
-  const { nome, peso, ativa } = req.body
+  const { nome, peso, ativa, criteriosJson } = req.body
   const fields: string[] = []
-  const vals: (string | number | boolean)[] = []
-  if (nome      !== undefined) { fields.push('nome = ?');  vals.push(nome) }
-  if (peso      !== undefined) { fields.push('peso = ?');  vals.push(Number(peso)) }
-  if (ativa     !== undefined) { fields.push('ativa = ?'); vals.push(Boolean(ativa)) }
+  const vals: (string | number | boolean | null)[] = []
+  if (nome         !== undefined) { fields.push('nome = ?');              vals.push(nome) }
+  if (peso         !== undefined) { fields.push('peso = ?');              vals.push(Number(peso)) }
+  if (ativa        !== undefined) { fields.push('ativa = ?');             vals.push(Boolean(ativa)) }
+  if (criteriosJson !== undefined) {
+    fields.push('criterios_json = ?::jsonb')
+    vals.push(criteriosJson !== null ? JSON.stringify(criteriosJson) : null)
+  }
   if (!fields.length) return res.status(400).json({ error: 'Nenhum campo para atualizar' })
   vals.push(id)
   await run(`UPDATE checklist_setores SET ${fields.join(', ')} WHERE id = ?`, vals)

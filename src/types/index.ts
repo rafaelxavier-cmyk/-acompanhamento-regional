@@ -40,6 +40,7 @@ export interface ChecklistSetor {
   ordem: number
   peso: number
   ativa?: boolean
+  criteriosJson?: { categoria: string; itens: string[] }[] | null
 }
 
 export interface RegistroChecklist {

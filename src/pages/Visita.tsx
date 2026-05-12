@@ -165,25 +165,30 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
 
   return (
     <div className={cn('border rounded-xl overflow-hidden', open ? 'border-brand-300' : 'border-gray-200', naoAplicavel && 'opacity-60')}>
-      {/* Header */}
+      {/* Header — dois níveis para caber bem no mobile */}
       <div
-        className={cn('flex items-center gap-3 px-5 py-3.5 cursor-pointer select-none transition-colors',
-          open ? 'bg-brand-50' : 'bg-white hover:bg-gray-50'
-        )}
+        className={cn('cursor-pointer select-none transition-colors', open ? 'bg-brand-50' : 'bg-white hover:bg-gray-50')}
         onClick={() => setOpen(o => !o)}
       >
-        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotClass}`} />
-        <span className={cn('flex-1 font-medium text-sm', naoAplicavel ? 'text-gray-400 line-through' : 'text-gray-800')}>
-          {setor.nome}
-        </span>
-        {naoAplicavel && (
-          <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">N/A</span>
-        )}
+        {/* Linha 1: identificação */}
+        <div className="flex items-center gap-2.5 px-4 pt-3 pb-1">
+          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotClass}`} />
+          <span className={cn('flex-1 font-medium text-sm min-w-0 truncate', naoAplicavel ? 'text-gray-400 line-through' : 'text-gray-800')}>
+            {setor.nome}
+          </span>
+          {naoAplicavel && (
+            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">N/A</span>
+          )}
+          <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+            {setor.peso}%
+          </span>
+          <ChevronDown size={16} className={cn('text-gray-400 transition-transform flex-shrink-0', open && 'rotate-180')} />
+        </div>
 
-        {/* Botões nota 0–5 + N/A */}
+        {/* Linha 2: botões de nota */}
         <div
+          className="flex gap-1 items-center px-4 pb-3 pl-7 flex-wrap"
           onClick={e => e.stopPropagation()}
-          className="flex gap-1 items-center flex-shrink-0"
         >
           {([0, 1, 2, 3, 4, 5] as const).map(n => (
             <button
@@ -192,7 +197,7 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
               title={`${n} — ${NOTA_LABELS[n]}`}
               onClick={() => onUpdate(setor.id, { nota: nota === n ? null : n, naoAplicavel: false })}
               className={cn(
-                'w-7 h-7 rounded text-xs font-bold border transition-colors',
+                'w-9 h-8 rounded-lg text-sm font-bold border transition-colors flex-shrink-0',
                 nota === n && !naoAplicavel
                   ? NOTA_ACTIVE[n]
                   : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40'
@@ -201,13 +206,13 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
               {n}
             </button>
           ))}
-          <div className="w-px h-4 bg-gray-200 mx-0.5" />
+          <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
           <button
             disabled={visita.status === 'concluida'}
             title="Não aplicável — exclui da pontuação"
             onClick={() => onUpdate(setor.id, naoAplicavel ? { naoAplicavel: false } : { nota: null, naoAplicavel: true })}
             className={cn(
-              'px-1.5 h-7 rounded text-[10px] font-bold border transition-colors',
+              'px-2.5 h-8 rounded-lg text-xs font-bold border transition-colors flex-shrink-0',
               naoAplicavel
                 ? 'bg-gray-500 text-white border-gray-500'
                 : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:cursor-not-allowed'
@@ -216,12 +221,6 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
             N/A
           </button>
         </div>
-
-        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
-          {setor.peso}%
-        </span>
-
-        <ChevronDown size={16} className={cn('text-gray-400 transition-transform flex-shrink-0', open && 'rotate-180')} />
       </div>
 
       {/* Corpo expandido */}
@@ -256,29 +255,33 @@ function SetorBlock({ setor, visita, unidade, registro, ultimoRegistro, onUpdate
           )}
 
           {/* Critérios (expansível) */}
-          {CRITERIOS[setor.ordem] && (
-            <details className="group">
-              <summary className="text-xs font-semibold text-gray-500 cursor-pointer list-none flex items-center gap-1 select-none">
-                <ChevronRight size={12} className="transition-transform group-open:rotate-90" />
-                Critérios de avaliação
-              </summary>
-              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3 pl-4 pt-1">
-                {CRITERIOS[setor.ordem].map(cat => (
-                  <div key={cat.categoria}>
-                    <p className="text-xs font-semibold text-gray-600 mb-1">{cat.categoria}</p>
-                    <ul className="space-y-0.5">
-                      {cat.itens.map(item => (
-                        <li key={item} className="text-xs text-gray-400 flex items-start gap-1">
-                          <span className="text-gray-300 flex-shrink-0 mt-0.5">•</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
+          {(() => {
+            const criterios = setor.criteriosJson ?? CRITERIOS[setor.ordem]
+            if (!criterios?.length) return null
+            return (
+              <details className="group">
+                <summary className="text-xs font-semibold text-gray-500 cursor-pointer list-none flex items-center gap-1 select-none">
+                  <ChevronRight size={12} className="transition-transform group-open:rotate-90" />
+                  Critérios de avaliação
+                </summary>
+                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3 pl-4 pt-1">
+                  {criterios.map(cat => (
+                    <div key={cat.categoria}>
+                      <p className="text-xs font-semibold text-gray-600 mb-1">{cat.categoria}</p>
+                      <ul className="space-y-0.5">
+                        {cat.itens.map(item => (
+                          <li key={item} className="text-xs text-gray-400 flex items-start gap-1">
+                            <span className="text-gray-300 flex-shrink-0 mt-0.5">•</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )
+          })()}
 
           {/* Observação */}
           <div>

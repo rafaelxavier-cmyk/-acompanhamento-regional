@@ -82,7 +82,7 @@ export const api = {
   getAllChecklistSetores: () => req<ChecklistSetor[]>('GET', '/checklist/setores', undefined, { all: '1' }),
   createChecklistSetor: (data: { nome: string; peso: number }) =>
     req<ChecklistSetor>('POST', '/checklist/setores', data),
-  updateChecklistSetor: (id: number, data: { nome?: string; peso?: number; ativa?: boolean }) =>
+  updateChecklistSetor: (id: number, data: { nome?: string; peso?: number; ativa?: boolean; criteriosJson?: { categoria: string; itens: string[] }[] | null }) =>
     req<ChecklistSetor>('PATCH', `/checklist/setores/${id}`, data),
   deleteChecklistSetor: (id: number) => req<void>('DELETE', `/checklist/setores/${id}`),
   getRegistrosChecklist: (visitaId: number) =>

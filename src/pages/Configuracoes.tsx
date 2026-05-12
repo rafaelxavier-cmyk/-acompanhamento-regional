@@ -12,12 +12,77 @@ interface EditState {
   value: string
 }
 
+type CriteriosCat = { categoria: string; itens: string[] }
+
+function criteriosToText(c: CriteriosCat[] | null | undefined): string {
+  if (!c?.length) return ''
+  return c.map(cat => `## ${cat.categoria}\n${cat.itens.join('\n')}`).join('\n\n')
+}
+
+function parseCriterios(text: string): CriteriosCat[] | null {
+  const result: CriteriosCat[] = []
+  let cat: string | null = null
+  let itens: string[] = []
+  for (const line of text.split('\n')) {
+    const t = line.trim()
+    if (t.startsWith('## ')) {
+      if (cat !== null) result.push({ categoria: cat, itens: itens.filter(Boolean) })
+      cat = t.slice(3).trim(); itens = []
+    } else if (t && cat !== null) {
+      itens.push(t)
+    }
+  }
+  if (cat !== null) result.push({ categoria: cat, itens: itens.filter(Boolean) })
+  return result.length ? result : null
+}
+
+function CriteriosModal({ setor, onSalvar, onFechar }: {
+  setor: ChecklistSetor
+  onSalvar: (id: number, criteriosJson: CriteriosCat[] | null) => void
+  onFechar: () => void
+}) {
+  const [text, setText] = useState(criteriosToText(setor.criteriosJson))
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <div>
+            <h2 className="font-semibold text-gray-900 text-sm">Critérios — {setor.nome}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Use <code className="bg-gray-100 px-1 rounded">## Nome da categoria</code> para separar categorias</p>
+          </div>
+          <button onClick={onFechar} className="text-gray-400 hover:text-gray-600 p-1"><X size={18} /></button>
+        </div>
+        <div className="px-6 py-4 flex-1 overflow-auto">
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            rows={14}
+            spellCheck={false}
+            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 font-mono leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-brand-300"
+            placeholder={"## Fluxo e organização\nEntrada iniciando pontualmente\nFluxo sem gargalos\n\n## Segurança\nPortaria ativa e atenta\nControle de acesso funcional"}
+          />
+        </div>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+          <button onClick={onFechar} className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2">Cancelar</button>
+          <button
+            onClick={() => { onSalvar(setor.id, parseCriterios(text)); onFechar() }}
+            className="bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-brand-600"
+          >
+            Salvar critérios
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ChecklistAdmin() {
   const [setores, setSetores] = useState<ChecklistSetor[]>([])
   const [editId, setEditId] = useState<number | null>(null)
   const [editVals, setEditVals] = useState({ nome: '', peso: '' })
   const [novoSetor, setNovoSetor] = useState<{ nome: string; peso: string } | null>(null)
   const [erroExcluir, setErroExcluir] = useState<string | null>(null)
+  const [critEditSetor, setCritEditSetor] = useState<ChecklistSetor | null>(null)
 
   async function load() { setSetores(await api.getAllChecklistSetores()) }
   useEffect(() => { load() }, [])
@@ -50,6 +115,11 @@ function ChecklistAdmin() {
       setErroExcluir(msg.includes('409') ? 'Este setor possui registros vinculados e não pode ser excluído.' : 'Erro ao excluir setor.')
       setTimeout(() => setErroExcluir(null), 4000)
     }
+  }
+
+  async function salvarCriterios(id: number, criteriosJson: CriteriosCat[] | null) {
+    await api.updateChecklistSetor(id, { criteriosJson })
+    load()
   }
 
   async function addSetor() {
@@ -89,7 +159,7 @@ function ChecklistAdmin() {
             <th className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Setor</th>
             <th className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase w-24 text-center">Peso</th>
             <th className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase w-20 text-center">Ativo</th>
-            <th className="px-3 py-2 w-20"></th>
+            <th className="px-3 py-2 w-32"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -136,9 +206,18 @@ function ChecklistAdmin() {
                     <button onClick={() => setEditId(null)} className="text-gray-400 hover:text-gray-600 p-0.5"><X size={14} /></button>
                   </div>
                 ) : (
-                  <button onClick={() => deleteSetor(s.id)} className="text-gray-300 hover:text-red-400 transition-colors p-0.5">
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex gap-2 justify-end items-center">
+                    <button
+                      onClick={() => setCritEditSetor(s)}
+                      className="text-xs text-gray-400 hover:text-brand-600 transition-colors font-medium"
+                      title="Editar critérios de avaliação"
+                    >
+                      Critérios
+                    </button>
+                    <button onClick={() => deleteSetor(s.id)} className="text-gray-300 hover:text-red-400 transition-colors p-0.5">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 )}
               </td>
             </tr>
@@ -169,6 +248,14 @@ function ChecklistAdmin() {
           className="w-full flex items-center gap-2 px-5 py-3 border-t border-gray-100 text-sm text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
           <Plus size={14} /> Adicionar setor
         </button>
+      )}
+
+      {critEditSetor && (
+        <CriteriosModal
+          setor={critEditSetor}
+          onSalvar={salvarCriterios}
+          onFechar={() => setCritEditSetor(null)}
+        />
       )}
     </div>
   )
