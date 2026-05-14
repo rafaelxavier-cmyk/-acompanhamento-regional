@@ -394,6 +394,7 @@ export default function VisitaPage() {
   const [registros, setRegistros]   = useState<RegistroChecklist[]>([])
   const [ultimosReg, setUltimosReg] = useState<Record<number, UltimoRegistroChecklist>>({})
   const [concluindo, setConcluindo] = useState(false)
+  const [pendingSaves, setPendingSaves] = useState(0)
 
   useEffect(() => {
     if (!id) return
@@ -442,22 +443,31 @@ export default function VisitaPage() {
       }]
     })
     // Reconcilia com o servidor
-    const reg = await api.upsertRegistroChecklist(visita.id, setorId, data)
-    setRegistros(prev => {
-      const idx = prev.findIndex(r => r.setorId === setorId)
-      if (idx >= 0) {
-        const next = [...prev]; next[idx] = reg; return next
-      }
-      return [...prev, reg]
-    })
+    setPendingSaves(n => n + 1)
+    try {
+      const reg = await api.upsertRegistroChecklist(visita.id, setorId, data)
+      setRegistros(prev => {
+        const idx = prev.findIndex(r => r.setorId === setorId)
+        if (idx >= 0) {
+          const next = [...prev]; next[idx] = reg; return next
+        }
+        return [...prev, reg]
+      })
+    } finally {
+      setPendingSaves(n => n - 1)
+    }
   }, [visita])
 
   async function concluirVisita() {
-    if (!visita || concluindo) return
+    if (!visita || concluindo || pendingSaves > 0) return
     setConcluindo(true)
     try {
-      const updated = await api.updateVisita(visita.id, { status: 'concluida' })
+      const [updated, recs] = await Promise.all([
+        api.updateVisita(visita.id, { status: 'concluida' }),
+        api.getRegistrosChecklist(visita.id),
+      ])
       setVisita(updated)
+      setRegistros(recs)
     } finally {
       setConcluindo(false)
     }
@@ -504,11 +514,11 @@ export default function VisitaPage() {
         {visita.status === 'em_andamento' && (
           <button
             onClick={concluirVisita}
-            disabled={concluindo}
+            disabled={concluindo || pendingSaves > 0}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors disabled:opacity-60"
           >
             <CheckCircle2 size={16} />
-            {concluindo ? 'Concluindo...' : 'Concluir visita'}
+            {pendingSaves > 0 ? 'Salvando...' : concluindo ? 'Concluindo...' : 'Concluir visita'}
           </button>
         )}
       </div>
