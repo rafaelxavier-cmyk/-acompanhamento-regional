@@ -712,21 +712,61 @@ export default function RelatorioIAModal({ onClose }: Props) {
             )}
             {resultado && !gerando && (
               <div>
-                <div className="flex gap-3 mb-4 text-xs text-gray-500 flex-wrap">
+                {/* Meta chips */}
+                <div className="flex gap-2 mb-4 text-xs text-gray-500 flex-wrap">
                   <span className="bg-gray-100 px-3 py-1 rounded-full">
-                    Última visita: <strong>{formatDate(resultado.dataUltimaVisita)}</strong>
+                    Visita: <strong>{formatDate(resultado.dataUltimaVisita)}</strong>
                   </span>
-                  {resultado.scoreFinal != null && (() => {
-                    const s = resultado.scoreFinal!
-                    const cls = s >= 90 ? 'bg-emerald-50 text-emerald-700' : s >= 75 ? 'bg-green-50 text-green-700' : s >= 60 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'
-                    const label = s >= 90 ? 'Excelência' : s >= 75 ? 'Bom padrão' : s >= 60 ? 'Atenção' : 'Crítico'
-                    return <span className={`px-3 py-1 rounded-full font-bold ${cls}`}>NPS {s.toFixed(1)} — {label}</span>
-                  })()}
                   <span className={`px-3 py-1 rounded-full font-medium ${resultado.totalDemandas > 0 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
                     {resultado.totalDemandas} demanda(s) aberta(s)
                   </span>
                   {modoEdicao && <span className="bg-brand-50 text-brand-600 px-3 py-1 rounded-full">Modo edição ativo</span>}
                 </div>
+
+                {/* Scorecard de avaliação */}
+                {resultado.setoresData && resultado.setoresData.length > 0 && (
+                  <div className="mb-5 rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Avaliação por setor</span>
+                      {resultado.scoreFinal != null && (() => {
+                        const s = resultado.scoreFinal!
+                        const cls = s >= 90 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : s >= 75 ? 'bg-green-50 text-green-700 border-green-200' : s >= 60 ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-red-50 text-red-700 border-red-200'
+                        const label = s >= 90 ? 'Excelência' : s >= 75 ? 'Bom padrão' : s >= 60 ? 'Atenção' : 'Crítico'
+                        return <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${cls}`}>NPS {s.toFixed(1)} — {label}</span>
+                      })()}
+                    </div>
+                    <div>
+                      {resultado.setoresData.map((s, i) => {
+                        const isNA = s.naoAplicavel === true
+                        const notaCls = isNA ? 'bg-gray-100 text-gray-400' :
+                          s.nota === null ? 'bg-gray-100 text-gray-300' :
+                          s.nota <= 1 ? 'bg-red-100 text-red-700' :
+                          s.nota <= 3 ? 'bg-amber-100 text-amber-700' :
+                          'bg-green-100 text-green-700'
+                        return (
+                          <div key={i} className={`flex items-center gap-3 px-4 py-2 border-b border-gray-100 last:border-0 ${isNA ? 'opacity-50' : ''}`}>
+                            <span className={`flex-1 text-sm ${isNA ? 'line-through text-gray-400' : 'text-gray-700'}`}>{s.setorNome}</span>
+                            <span className="text-[10px] text-gray-400 w-8 text-right">{s.peso}%</span>
+                            <span className={`w-8 h-6 rounded text-xs font-bold flex items-center justify-center flex-shrink-0 ${notaCls}`}>
+                              {isNA ? 'N/A' : s.nota !== null ? s.nota : '—'}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Divisor */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex-1 h-px bg-gray-100" />
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles size={9} /> Análise e plano de ação
+                  </span>
+                  <div className="flex-1 h-px bg-gray-100" />
+                </div>
+
+                {/* Texto IA */}
                 {modoEdicao ? (
                   <div>
                     <p className="text-xs text-gray-400 mb-2">Edite o texto livremente. Use **negrito**, # Título, ## Subtítulo, - item de lista.</p>
